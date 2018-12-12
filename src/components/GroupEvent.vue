@@ -6,7 +6,7 @@
       </h1>
     </a-row>
     <a-row>
-      <a-col offset=1 span=4>
+      <a-col :offset=1 :span=4>
         <a-affix>
           <div>
             <div class="somemorepadding">
@@ -14,7 +14,7 @@
                 Group members:
               </h3>
               <a-list>
-                <a-list-item v-for="member in groupMembers" :key="member">
+                <a-list-item v-for="member of groupMembers" :key="member.name">
                   <a-avatar shape="square" :src='member.avatar' style="margin-right:24px" />
                   <label style="align-self: center">
                     {{member.name}}
@@ -25,7 +25,7 @@
           </div>
         </a-affix>
       </a-col>
-      <a-col offset=2 span=11>
+      <a-col :offset=2 :span=11>
         <div style="margin: 0px 0px 10px 0px">
           <a-button size="large" type="primary" style="margin: 0px 10px 0px 0px"
                     @click="addExpenseModalVisible=true">Add Expense</a-button>
@@ -38,7 +38,7 @@
         >
           <template slot="amount" slot-scope="amount">
               <div class=rightaligned>
-                {{groupEvent.currency_prefix}}{{amount | currency}}
+                {{groupEvent.currencyPrefix}}{{amount | currency}}
               </div>
           </template>
           <template slot="description" slot-scope="description">
@@ -53,7 +53,7 @@
           </template>
           <template slot="sharingGroupMembers" slot-scope="sharingGroupMembers">
             <div>
-              {{sharingGroupMembers.length > 0 ? sharingGroupMembers.map(m => m.name).reduce((a, b) => a + ", " + b) : 'All'}}
+              {{sharingGroupMembers.length > 0 ? sharingGroupMembers.map(m => groupMembers[m].name).reduce((a, b) => a + ", " + b) : 'All'}}
             </div>
           </template>
           <template slot="date" slot-scope="date">
@@ -81,32 +81,20 @@ import Antd from 'ant-design-vue'
 import VueFilterDateFormat from 'vue-filter-date-format'
 import AddExpense from '@/components/AddExpense'
 
+import GroupBillSplitterService from '@/services/groupbillsplitterservice'
+
 Vue.use(Antd)
 Vue.use(VueFilterDateFormat)
 
 export default {
   name: 'GroupEvent',
   data () {
-    let groupMembers = [
-      { name: 'Alice', avatar: 'https://randomuser.me/api/portraits/thumb/women/51.jpg' },
-      { name: 'Bob', avatar: 'https://randomuser.me/api/portraits/thumb/men/42.jpg' },
-      { name: 'Clive', avatar: 'https://randomuser.me/api/portraits/thumb/men/23.jpg' }
-    ]
-    let expenses = [
-      { amount: '60', date: '2018-05-12', description: 'Camping', payingGroupMember: groupMembers[0], sharingGroupMembers: [groupMembers[0], groupMembers[1]] },
-      { amount: '25', date: '2018-05-12', description: 'Lunch', payingGroupMember: groupMembers[1], sharingGroupMembers: [groupMembers[0]] },
-      { amount: '50', date: '2018-05-12', description: 'Fuel', payingGroupMember: groupMembers[2], sharingGroupMembers: [groupMembers[1], groupMembers[2]] },
-      { amount: '5', date: '2018-05-12', description: 'Groceries', payingGroupMember: groupMembers[0], sharingGroupMembers: [] }
-    ]
     return {
       addExpenseModalVisible: false,
       addedExpenseValid: false,
-      groupEvent: {
-        name: 'Holiday Trip',
-        currency_prefix: '€'
-      },
-      groupMembers,
-      expenses: expenses.concat(expenses).concat(expenses).concat(expenses).concat(expenses).concat(expenses),
+      groupEvent: {},
+      groupMembers: {},
+      expenses: [],
       columns: [{
         title: 'Amount',
         dataIndex: 'amount',
@@ -152,11 +140,45 @@ export default {
     'add-expense-form': AddExpense
   },
   methods: {
+    fetchData () {
+      let params = this.$route.params
+      let groupEventPromise = GroupBillSplitterService.fetchGroupEvent(params.id)
+      let groupMembersPromise = GroupBillSplitterService.fetchMembers(params.id)
+      let expensesPromise = GroupBillSplitterService.fetchExpenses(params.id)
+      Promise.all([groupEventPromise, groupMembersPromise, expensesPromise])
+        .then(values => {
+          this.setData(values[0].data, values[1].data, values[2].data)
+        })
+        .catch(err => console.log(err))
+    },
+    setData (groupEvent, groupMembers, expenses) {
+      this.groupEvent = groupEvent
+
+      this.groupMembers = {}
+      for (let member of groupMembers) {
+        let id = member._id.toString()
+        this.groupMembers[id] = member
+      }
+
+      for (let e of expenses) {
+        e.amount = parseFloat(e.amount.$numberDecimal)
+      }
+      console.log(expenses)
+      this.expenses = expenses
+    },
     addExpenseOk () {
       console.log('Checked OK')
       if (this.addedExpenseValid) {
         this.addExpenseModalVisible = false
       }
+    }
+  },
+  created () {
+    this.fetchData()
+  },
+  watch: {
+    $route () {
+      this.fetchData()
     }
   }
 }
