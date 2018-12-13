@@ -24,13 +24,19 @@ export default {
   postExpense (groupEventId, expense) {
     return Api().post(`/groupEvents/${groupEventId}/expenses`, expense, jsonHeaders)
   },
-  putGroupEvent (groupEvent) {
-    return Api().put(`/groupEvents/${groupEvent._id}`, groupEvent, jsonHeaders)
+  putGroupEvent (groupEventId, groupEvent) {
+    return Api().put(`/groupEvents/${groupEventId}`, groupEvent, jsonHeaders)
   },
-  putGroupMember (groupEventId, member) {
-    return Api().put(`/groupEvents/${groupEventId}/members/${member._id}`, member, jsonHeaders)
+  putGroupMember (groupEventId, groupMemberId, member) {
+    return Api().put(`/groupEvents/${groupEventId}/members/${groupMemberId}`, member, jsonHeaders)
   },
-  putExpense (groupEventId, expense) {
-    return Api().put(`/groupEvents/${groupEventId}/expenses/${expense._id}`, expense, jsonHeaders)
+  putExpense (groupEventId, expenseId, expense) {
+    return Api().put(`/groupEvents/${groupEventId}/expenses/${expenseId}`, expense, jsonHeaders)
+  },
+  deleteGroupMember (groupEventId, groupMemberId) {
+    return Api().delete(`/groupEvents/${groupEventId}/members/${groupMemberId}`)
+  },
+  deleteExpense (groupEventId, expenseId) {
+    return Api().delete(`/groupEvents/${groupEventId}/expenses/${expenseId}`)
   }
 }

@@ -17,6 +17,7 @@
     "ant-design-vue": "^1.1.10",
     "axios": "^0.18.0",
     "vue": "^2.5.2",
+    "vue-affix": "^0.4.0",
     "vue-filter-date-format": "^1.1.4",
     "vue-router": "^3.0.1"
   },

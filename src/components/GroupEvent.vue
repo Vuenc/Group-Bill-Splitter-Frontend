@@ -1,40 +1,42 @@
 <template>
   <div>
     <a-row class="somemoremargin">
-      <h1 class="leftaligned">
-        Group Event: {{groupEvent.name}}
-      </h1>
+      <a-col :offset=1>
+        <h1 class="leftaligned">
+          Group Event: {{groupEvent.name}}
+        </h1>
+      </a-col>
     </a-row>
     <a-row>
       <a-col :offset=1 :span=4>
-        <a-affix>
-          <div>
-            <div class="somemorepadding">
-              <h3>
-                Group members:
-              </h3>
-              <a-list>
-                <a-list-item v-for="member of groupMembers" :key="member.name">
-                  <a-avatar shape="square" icon="user" :src='member.avatar' style="margin-right:24px" />
-                  <label style="align-self: center">
-                    {{member.name}}
-                  </label>
-                </a-list-item>
-              </a-list>
-            </div>
+        <affix relative-element-selector="#top-table-div" style="width: 300px">
+          <div class="somemorepadding">
+            <h3>
+              Group members:
+            </h3>
+            <a-list>
+              <a-list-item v-for="member of groupMembers" :key="member.name">
+                <a-avatar shape="square" icon="user" :src='member.avatar' style="margin-right:24px" />
+                <label style="align-self: center">
+                  {{member.name}}
+                </label>
+              </a-list-item>
+            </a-list>
           </div>
-        </a-affix>
+        </affix>
       </a-col>
       <a-col :offset=2 :span=11>
-        <a-affix @change="state => buttonAffixActivated = state">
-          <div style="margin: 0px 0px 10px 0px; min-height = 60px; background: #ffffffff; padding: 10px 0px 10px 0px">
-            <a-button :size="buttonAffixActivated ? '' : 'large'" type="primary" style="margin: 0px 10px 0px 0px"
-                      @click="addExpenseModalVisible=true">Add Expense</a-button>
-            <a-button :size="buttonAffixActivated ? '' : 'large'">Settle Expenses</a-button>
-        </div>
-        </a-affix>
-        <a-table :columns="columns"
-                 :rowKey="record => record.name"
+        <div id="top-table-div">
+          <div @change="state => buttonAffixActivated = state">
+            <div style="margin: 0px 0px 10px 0px; min-height: 60px; background: #ffffffff; padding: 10px 0px 10px 0px">
+              <a-button :size="buttonAffixActivated ? 'large' : 'large'" type="primary" style="margin: 0px 10px 0px 0px"
+                        @click="addExpense">Add Expense</a-button>
+              <a-button :size="buttonAffixActivated ? 'large' : 'large'">Settle Expenses</a-button>
+            </div>
+          </div>
+        <a-table id="expenses-table"
+                 :columns="columns"
+                 :rowKey="record => record._id"
                  :dataSource="expenses"
                  :pagination="false"
         >
@@ -63,20 +65,29 @@
               {{new Date(date) | dateFormat('DD.MM.YYYY')}}
             </div>
           </template>
+          <template slot="actions" slot-scope="_id">
+            <div style="white-space: nowrap">
+              <a-button size="small" shape="circle" icon='edit' @click="editExpense(_id)"/>
+              <a-button size="small" shape="circle" icon='delete' @click="deleteExpense(_id)"/>
+            </div>
+          </template>
         </a-table>
+        </div>
       </a-col>
     </a-row>
     <a-modal ref="addExpenseModal"
              v-model="addExpenseModalVisible"
              :destroyOnClose="true"
-             @ok="addExpenseOkPressed"
-             @cancel="addExpenseCancelPressed"
+             @ok="expenseModalOkPressed"
+             @cancel="expenseModalCancelPressed"
     >
       <add-expense-form :isValid="addedExpenseValid"
                         :validChanged="valid => addedExpenseValid = valid"
                         @ok="addExpenseOkSuccessful"
+                        @okEdited="editExpenseOkSuccessful"
                         :groupMembers="groupMembers"
-                        :cancelled="addExpenseCancelled"
+                        :cancelled="expenseModalCancelled"
+                        :inputExpense="currentDialogExpense"
       >
       </add-expense-form>
     </a-modal>
@@ -89,11 +100,13 @@ import 'ant-design-vue/dist/antd.css'
 import Antd from 'ant-design-vue'
 import VueFilterDateFormat from 'vue-filter-date-format'
 import AddExpense from '@/components/AddExpense'
+import Affix from 'vue-affix'
 
 import GroupBillSplitterService from '@/services/groupbillsplitterservice'
 
 Vue.use(Antd)
 Vue.use(VueFilterDateFormat)
+Vue.use(Affix)
 
 export default {
   name: 'GroupEvent',
@@ -104,8 +117,9 @@ export default {
       groupEvent: {},
       groupMembers: {},
       expenses: [],
-      addExpenseCancelled: false,
+      expenseModalCancelled: false,
       buttonAffixActivated: false,
+      currentDialogExpense: null,
       columns: [{
         title: 'Amount',
         dataIndex: 'amount',
@@ -124,7 +138,7 @@ export default {
         title: 'Payed By',
         dataIndex: 'payingGroupMember',
         // sorter: true,
-        width: '10%',
+        width: '15%',
         scopedSlots: { customRender: 'payingGroupMember' }
       },
       {
@@ -138,6 +152,12 @@ export default {
         dataIndex: 'date',
         width: '10%',
         scopedSlots: { customRender: 'date' }
+      },
+      {
+        title: 'Actions',
+        dataIndex: '_id',
+        width: '10%',
+        scopedSlots: {customRender: 'actions'}
       }]
     }
   },
@@ -160,7 +180,10 @@ export default {
         .then(values => {
           this.setData(values[0].data, values[1].data, values[2].data)
         })
-        .catch(err => console.log(err))
+        .catch(err => {
+          this.setData({}, [], [])
+          console.log(err)
+        })
     },
     setData (groupEvent, groupMembers, expenses) {
       this.groupEvent = groupEvent
@@ -176,24 +199,57 @@ export default {
       }
       this.expenses = expenses
     },
-    addExpenseOkPressed () {
-      this.addExpenseCancelled = false
+    addExpense () {
+      this.currentDialogExpense = null
+      this.addExpenseModalVisible = true
+    },
+    addExpenseOkSuccessful (expense) {
+      expense._id = ''
+      this.expenses.push(expense)
+      expense._id = undefined
+      GroupBillSplitterService.postExpense(this.$route.params.id, expense)
+        .then(res => {
+          expense._id = res.data.data._id
+          console.log(expense)
+        })
+        .catch(err => {
+          console.log('Adding expense failed: ' + err)
+          this.fetchData()
+        })
+    },
+    editExpense (id) {
+      this.currentDialogExpense = this.expenses[this.expenses.findIndex(e => e._id === id)]
+      this.addExpenseModalVisible = true
+    },
+    editExpenseOkSuccessful (expense) {
+      let expenseIndex = this.expenses.findIndex(e => e._id === expense._id)
+      this.expenses.splice(expenseIndex, 1, expense)
+      GroupBillSplitterService.putExpense(this.$route.params.id, expense._id, expense)
+        .then()
+        .catch(err => {
+          console.log('Editing expense failed: ' + err)
+          this.fetchData()
+        })
+    },
+    deleteExpense (id) {
+      let expenseIndex = this.expenses.findIndex(e => e._id === id)
+      this.expenses.splice(expenseIndex, 1)
+      GroupBillSplitterService.deleteExpense(this.$route.params.id, id)
+        .then()
+        .catch(err => {
+          console.log('Deleting expense failed: ' + err)
+          this.fetchData()
+        })
+    },
+    expenseModalOkPressed () {
+      this.expenseModalCancelled = false
       if (this.addedExpenseValid) {
         this.addExpenseModalVisible = false
       }
     },
-    addExpenseCancelPressed () {
-      this.addExpenseCancelled = true
+    expenseModalCancelPressed () {
+      this.expenseModalCancelled = true
       console.log('Set cancelled')
-    },
-    addExpenseOkSuccessful (expense) {
-      this.expenses.push(expense)
-      GroupBillSplitterService.postExpense(this.$route.params.id, expense)
-        .then()
-        .catch(err => {
-          console.log('Adding failed: ' + err)
-          this.fetchData()
-        })
     }
   },
   created () {

@@ -72,7 +72,7 @@ export default {
       sharingMembersEnterType: 'all'
     }
   },
-  props: ['validChanged', 'groupMembers', 'cancelled'],
+  props: ['validChanged', 'groupMembers', 'cancelled', 'inputExpense'],
   mounted () {
     this.$refs.firstInput.focus()
     this.validChanged(false)
@@ -97,8 +97,21 @@ export default {
       this.validChanged(valid)
     }
   },
+  created () {
+    if (this.inputExpense) {
+      this.description = this.inputExpense.description
+      this.amount = this.inputExpense.amount
+      this.payingGroupMember = this.inputExpense.payingGroupMember
+      this.sharingGroupMembers = this.inputExpense.sharingGroupMembers
+      if (this.inputExpense.date) {
+        this.date = moment(this.inputExpense.date)
+      }
+      this.sharingMembersEnterType = this.sharingGroupMembers.length > 0 ? 'select' : 'all'
+    }
+  },
   destroyed () {
     console.log('this.cancelled = ' + this.cancelled)
+    console.log(this.sharingGroupMembers)
     if (!this.cancelled) {
       let expense = {
         description: this.description,
@@ -107,7 +120,12 @@ export default {
         sharingGroupMembers: this.sharingGroupMembers,
         date: this.date
       }
-      this.$emit('ok', expense)
+      if (!this.inputExpense) {
+        this.$emit('ok', expense)
+      } else {
+        expense._id = this.inputExpense._id
+        this.$emit('okEdited', expense)
+      }
     }
   }
 }
