@@ -1,7 +1,7 @@
 <template>
   <div>
     <a-form-item label="Description">
-      <a-input ref="firstInput" v-model="description" placeholder="What was payed for?"></a-input>
+      <a-input ref="firstInput" v-model="description" placeholder="What was paid for?"></a-input>
     </a-form-item>
     <a-form-item label="Amount">
       <div>
@@ -17,9 +17,12 @@
             <a-select ref="selectPayingGroupMemberElement"
                       placeholder="Who paid?"
                       style="min-width: 100%"
-                      v-model="payingGroupMemberName"
+                      v-model="payingGroupMember"
                       showSearch>
-              <a-select-option v-for="name in groupMemberNames" :key="name">{{name}}</a-select-option>
+              <a-select-option v-for="member of groupMembers"
+                               :key="member._id"
+                               :value="member._id">
+                {{member.name}}</a-select-option>
             </a-select>
           </a-col>
         </a-row>
@@ -27,17 +30,18 @@
     </a-form-item>
     <a-form-item label="Shared by:" >
       <a-radio-group v-model="sharingMembersEnterType">
-        <a-radio value="all" @click="sharingGroupMemberNames=[]">All group members (current and future members)</a-radio>
+        <a-radio value="all" @click="sharingGroupMembers=[]">All group members (current and future members)</a-radio>
         <a-radio value="select" @click="focusSharedMemberSelection">Select group members:</a-radio>
         <a-select ref="selectSharingGroupMembersElement"
-                  v-model="sharingGroupMemberNames"
+                  v-model="sharingGroupMembers"
                   mode="multiple"
                   style="width: 100%"
                   @focus="sharingMembersEnterType = 'select'"
                   :placeholder="sharingMembersEnterType === 'all' ? 'All users share the expense' : 'Select users...'">
-          <a-select-option v-for="name in groupMemberNames"
-                           :key="name"
-          >{{name}}</a-select-option>
+          <a-select-option v-for="member of groupMembers"
+                           :key="member._id"
+                           :value="member._id"
+          >{{member.name}}</a-select-option>
         </a-select>
       </a-radio-group>
     </a-form-item>
@@ -61,21 +65,17 @@ export default {
     return {
       description: '',
       amount: null,
-      payingGroupMemberName: '',
-      sharingGroupMemberNames: [],
+      payingGroupMember: [],
+      sharingGroupMembers: [],
       date: moment(),
       currencyPrefix: '€ ',
-      groupMemberNames: ['Alice', 'Bob', 'Eve'],
       sharingMembersEnterType: 'all'
     }
   },
-  props: ['validChanged'],
+  props: ['validChanged', 'groupMembers', 'cancelled'],
   mounted () {
     this.$refs.firstInput.focus()
     this.validChanged(false)
-  },
-  beforeDestroy () {
-    console.log('Destroyed!')
   },
   methods: {
     focusSharedMemberSelection () {
@@ -86,15 +86,28 @@ export default {
     isValid () {
       let valid = this.description !== '' &&
         this.amount !== null &&
-        this.payingGroupMemberName !== '' &&
+        this.payingGroupMember !== '' &&
         (this.sharingMembersEnterType === 'all' ||
-         this.sharingGroupMemberNames.length > 0)
+         this.sharingGroupMembers.length > 0)
       return valid
     }
   },
   watch: {
     isValid (valid) {
       this.validChanged(valid)
+    }
+  },
+  destroyed () {
+    console.log('this.cancelled = ' + this.cancelled)
+    if (!this.cancelled) {
+      let expense = {
+        description: this.description,
+        amount: this.amount,
+        payingGroupMember: this.payingGroupMember,
+        sharingGroupMembers: this.sharingGroupMembers,
+        date: this.date
+      }
+      this.$emit('ok', expense)
     }
   }
 }

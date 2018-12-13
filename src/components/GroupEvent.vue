@@ -15,7 +15,7 @@
               </h3>
               <a-list>
                 <a-list-item v-for="member of groupMembers" :key="member.name">
-                  <a-avatar shape="square" :src='member.avatar' style="margin-right:24px" />
+                  <a-avatar shape="square" icon="user" :src='member.avatar' style="margin-right:24px" />
                   <label style="align-self: center">
                     {{member.name}}
                   </label>
@@ -26,11 +26,13 @@
         </a-affix>
       </a-col>
       <a-col :offset=2 :span=11>
-        <div style="margin: 0px 0px 10px 0px">
-          <a-button size="large" type="primary" style="margin: 0px 10px 0px 0px"
-                    @click="addExpenseModalVisible=true">Add Expense</a-button>
-          <a-button size="large">Settle Expenses</a-button>
+        <a-affix @change="state => buttonAffixActivated = state">
+          <div style="margin: 0px 0px 10px 0px; min-height = 60px; background: #ffffffff; padding: 10px 0px 10px 0px">
+            <a-button :size="buttonAffixActivated ? '' : 'large'" type="primary" style="margin: 0px 10px 0px 0px"
+                      @click="addExpenseModalVisible=true">Add Expense</a-button>
+            <a-button :size="buttonAffixActivated ? '' : 'large'">Settle Expenses</a-button>
         </div>
+        </a-affix>
         <a-table :columns="columns"
                  :rowKey="record => record.name"
                  :dataSource="expenses"
@@ -48,7 +50,7 @@
           </template>
           <template slot="payingGroupMember" slot-scope="payingGroupMember">
             <div>
-              {{payingGroupMember.name}}
+              {{groupMembers[payingGroupMember].name}}
             </div>
           </template>
           <template slot="sharingGroupMembers" slot-scope="sharingGroupMembers">
@@ -67,8 +69,15 @@
     <a-modal ref="addExpenseModal"
              v-model="addExpenseModalVisible"
              :destroyOnClose="true"
-             @ok="addExpenseOk">
-      <add-expense-form :isValid="addedExpenseValid" :validChanged="valid => addedExpenseValid = valid">
+             @ok="addExpenseOkPressed"
+             @cancel="addExpenseCancelPressed"
+    >
+      <add-expense-form :isValid="addedExpenseValid"
+                        :validChanged="valid => addedExpenseValid = valid"
+                        @ok="addExpenseOkSuccessful"
+                        :groupMembers="groupMembers"
+                        :cancelled="addExpenseCancelled"
+      >
       </add-expense-form>
     </a-modal>
   </div>
@@ -95,6 +104,8 @@ export default {
       groupEvent: {},
       groupMembers: {},
       expenses: [],
+      addExpenseCancelled: false,
+      buttonAffixActivated: false,
       columns: [{
         title: 'Amount',
         dataIndex: 'amount',
@@ -163,14 +174,26 @@ export default {
       for (let e of expenses) {
         e.amount = parseFloat(e.amount.$numberDecimal)
       }
-      console.log(expenses)
       this.expenses = expenses
     },
-    addExpenseOk () {
-      console.log('Checked OK')
+    addExpenseOkPressed () {
+      this.addExpenseCancelled = false
       if (this.addedExpenseValid) {
         this.addExpenseModalVisible = false
       }
+    },
+    addExpenseCancelPressed () {
+      this.addExpenseCancelled = true
+      console.log('Set cancelled')
+    },
+    addExpenseOkSuccessful (expense) {
+      this.expenses.push(expense)
+      GroupBillSplitterService.postExpense(this.$route.params.id, expense)
+        .then()
+        .catch(err => {
+          console.log('Adding failed: ' + err)
+          this.fetchData()
+        })
     }
   },
   created () {
