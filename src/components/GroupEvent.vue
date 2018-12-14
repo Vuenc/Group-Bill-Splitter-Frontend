@@ -1,9 +1,12 @@
 <template>
   <div>
-    <a-row class="somemoremargin">
+    <a-row class="somemorepadding"  style="padding: 30px 30px 5px 30px; margin: 0px 0px 30px 0px; background: #1890ff">
       <a-col :offset=1>
-        <h1 class="leftaligned">
-          Group Event: {{groupEvent.name}}
+        <h1 class="leftaligned" style="color: #eeeeee; white-space: nowrap">
+          Group Event:
+          <label style="color: white">
+            {{groupEvent.name}}
+          </label>
         </h1>
       </a-col>
     </a-row>
@@ -11,11 +14,14 @@
       <a-col :offset=1 :span=4>
         <affix relative-element-selector="#top-table-div" style="width: 300px">
           <div class="somemorepadding">
-            <h3>
-              Group members:
-            </h3>
+            <div style="white-space: nowrap; display: flex; justify-content: space-between">
+              <h3>
+                Group Members:
+              </h3>
+              <a-button size="small" shape="circle" icon='edit' @click="editGroupMembers"/>
+            </div>
             <a-list>
-              <a-list-item v-for="member of groupMembers" :key="member.name">
+              <a-list-item v-for="member of groupMembers" :key="member._id">
                 <a-avatar shape="square" icon="user" :src='member.avatar' style="margin-right:24px" />
                 <label style="align-self: center">
                   {{member.name}}
@@ -25,10 +31,10 @@
           </div>
         </affix>
       </a-col>
-      <a-col :offset=2 :span=11>
+      <a-col :offset=2 :span=12>
         <div id="top-table-div">
           <div @change="state => buttonAffixActivated = state">
-            <div style="margin: 0px 0px 10px 0px; min-height: 60px; background: #ffffffff; padding: 10px 0px 10px 0px">
+            <div style="margin: 0px 0px 10px 0px; min-height: 60px; padding: 10px 0px 10px 0px">
               <a-button :size="buttonAffixActivated ? 'large' : 'large'" type="primary" style="margin: 0px 10px 0px 0px"
                         @click="addExpense">Add Expense</a-button>
               <a-button :size="buttonAffixActivated ? 'large' : 'large'">Settle Expenses</a-button>
@@ -38,7 +44,7 @@
                  :columns="columns"
                  :rowKey="record => record._id"
                  :dataSource="expenses"
-                 :pagination="false"
+                 :pagination="{pageSize: 50}"
         >
           <template slot="amount" slot-scope="amount">
               <div class=rightaligned>
@@ -46,8 +52,18 @@
               </div>
           </template>
           <template slot="description" slot-scope="description">
-            <div>
-              {{description}}
+            <div :class="labelHighlighted ? 'label-highlight' : ''">
+              <a-tooltip>
+                <template slot="title">
+                  <a-icon type="edit"></a-icon>
+                </template>
+                <div style="display: flex; justify-content: stretch; cursor: pointer"
+                     @mouseover="labelHighlighted=true"
+                     @mouseleave="labelHighlighted=false"
+                     @click="editExpense(_id, 'description')">
+                  {{description}}
+                </div>
+              </a-tooltip>
             </div>
           </template>
           <template slot="payingGroupMember" slot-scope="payingGroupMember">
@@ -56,9 +72,10 @@
             </div>
           </template>
           <template slot="sharingGroupMembers" slot-scope="sharingGroupMembers">
-            <div>
-              {{sharingGroupMembers.length > 0 ? sharingGroupMembers.map(m => groupMembers[m].name).reduce((a, b) => a + ", " + b) : 'All'}}
+            <div v-if="sharingGroupMembers.length > 0">
+              {{sharingGroupMembers.map(m => groupMembers[m].name).reduce((a, b) => a + ", " + b)}}
             </div>
+            <div v-else><i>Everyone</i></div>
           </template>
           <template slot="date" slot-scope="date">
             <div>
@@ -91,6 +108,18 @@
       >
       </add-expense-form>
     </a-modal>
+    <a-modal ref="editGroupMembersModal"
+                           v-model="editGroupMembersModalVisible"
+                           :destroyOnClose="true"
+                           @ok="groupMembersModalOkPressed"
+    >
+    <edit-group-members-form ref="editGroupMembersForm"
+                             :inputGroupMembers="groupMembers"
+                             :groupEventId="groupEvent._id"
+                             @finished="groupMembersModalFinished"
+    >
+    </edit-group-members-form>
+  </a-modal>
   </div>
 </template>
 
@@ -99,9 +128,10 @@ import Vue from 'vue'
 import 'ant-design-vue/dist/antd.css'
 import Antd from 'ant-design-vue'
 import VueFilterDateFormat from 'vue-filter-date-format'
-import AddExpense from '@/components/AddExpense'
 import Affix from 'vue-affix'
 
+import AddExpense from '@/components/AddExpense'
+import GroupMembers from '@/components/GroupMembers'
 import GroupBillSplitterService from '@/services/groupbillsplitterservice'
 
 Vue.use(Antd)
@@ -113,6 +143,7 @@ export default {
   data () {
     return {
       addExpenseModalVisible: false,
+      editGroupMembersModalVisible: false,
       addedExpenseValid: false,
       groupEvent: {},
       groupMembers: {},
@@ -120,45 +151,47 @@ export default {
       expenseModalCancelled: false,
       buttonAffixActivated: false,
       currentDialogExpense: null,
-      columns: [{
-        title: 'Amount',
-        dataIndex: 'amount',
-        // sorter: true,
-        width: '10%',
-        scopedSlots: { customRender: 'amount' }
-      },
-      {
-        title: 'Description',
-        dataIndex: 'description',
-        // sorter: true,
-        width: '35%',
-        scopedSlots: { customRender: 'description' }
-      },
-      {
-        title: 'Payed By',
-        dataIndex: 'payingGroupMember',
-        // sorter: true,
-        width: '15%',
-        scopedSlots: { customRender: 'payingGroupMember' }
-      },
-      {
-        title: 'Shared By',
-        dataIndex: 'sharingGroupMembers',
-        width: '35%',
-        scopedSlots: { customRender: 'sharingGroupMembers' }
-      },
-      {
-        title: 'Payment Date',
-        dataIndex: 'date',
-        width: '10%',
-        scopedSlots: { customRender: 'date' }
-      },
-      {
-        title: 'Actions',
-        dataIndex: '_id',
-        width: '10%',
-        scopedSlots: {customRender: 'actions'}
-      }]
+      labelHighlighted: false,
+      columns: [
+        {
+          title: 'Payed By',
+          dataIndex: 'payingGroupMember',
+          // sorter: true,
+          width: '15%',
+          scopedSlots: { customRender: 'payingGroupMember' }
+        },
+        {
+          title: 'Description',
+          dataIndex: 'description',
+          // sorter: true,
+          width: '30%',
+          scopedSlots: { customRender: 'description' }
+        },
+        {
+          title: 'Amount',
+          dataIndex: 'amount',
+          // sorter: true,
+          width: '10%',
+          scopedSlots: { customRender: 'amount' }
+        },
+        {
+          title: 'Shared By',
+          dataIndex: 'sharingGroupMembers',
+          width: '35%',
+          scopedSlots: { customRender: 'sharingGroupMembers' }
+        },
+        {
+          title: 'Payment Date',
+          dataIndex: 'date',
+          width: '10%',
+          scopedSlots: { customRender: 'date' }
+        },
+        {
+          title: 'Actions',
+          dataIndex: '_id',
+          width: '10%',
+          scopedSlots: {customRender: 'actions'}
+        }]
     }
   },
   filters: { // https://stackoverflow.com/questions/48132763/reduce-decimal-places-and-add-commas-using-vue-js
@@ -168,7 +201,8 @@ export default {
     }
   },
   components: {
-    'add-expense-form': AddExpense
+    'add-expense-form': AddExpense,
+    'edit-group-members-form': GroupMembers
   },
   methods: {
     fetchData () {
@@ -185,19 +219,30 @@ export default {
           console.log(err)
         })
     },
+    fetchGroupMembers () {
+      GroupBillSplitterService.fetchMembers(this.$route.params.id)
+        .then(groupMembers => this.setGroupMembers(groupMembers.data))
+        .catch(err => {
+          this.setData({}, [], [])
+          console.log(err)
+        })
+    },
     setData (groupEvent, groupMembers, expenses) {
       this.groupEvent = groupEvent
 
-      this.groupMembers = {}
-      for (let member of groupMembers) {
-        let id = member._id.toString()
-        this.groupMembers[id] = member
-      }
+      this.setGroupMembers(groupMembers)
 
       for (let e of expenses) {
         e.amount = parseFloat(e.amount.$numberDecimal)
       }
       this.expenses = expenses
+    },
+    setGroupMembers (groupMembers) {
+      this.groupMembers = {}
+      for (let member of groupMembers) {
+        let id = member._id.toString()
+        this.groupMembers[id] = member
+      }
     },
     addExpense () {
       this.currentDialogExpense = null
@@ -210,7 +255,6 @@ export default {
       GroupBillSplitterService.postExpense(this.$route.params.id, expense)
         .then(res => {
           expense._id = res.data.data._id
-          console.log(expense)
         })
         .catch(err => {
           console.log('Adding expense failed: ' + err)
@@ -250,6 +294,17 @@ export default {
     expenseModalCancelPressed () {
       this.expenseModalCancelled = true
       console.log('Set cancelled')
+    },
+    editGroupMembers () {
+      this.editGroupMembersModalVisible = true
+    },
+    groupMembersModalOkPressed () {
+      this.$refs.editGroupMembersForm.okPressed(this.groupMembersModalFinished)
+    },
+    groupMembersModalFinished () {
+      this.editGroupMembersModalVisible = false
+      console.log('Running..')
+      this.fetchGroupMembers()
     }
   },
   created () {
@@ -308,5 +363,8 @@ export default {
   }
   .somemorepadding {
     padding: 30px
+  }
+  .label-highlight {
+    background: #feffe6;
   }
 </style>
