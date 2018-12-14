@@ -112,21 +112,18 @@
         </a-tabs>
       </a-col>
     </a-row>
-    <a-modal ref="addExpenseModal"
-             v-model="addExpenseModalVisible"
+    <a-modal ref="enterExpenseModal"
+             v-model="enterExpenseModalVisible"
              :destroyOnClose="true"
              @ok="expenseModalOkPressed"
-             @cancel="expenseModalCancelPressed"
     >
-      <add-expense-form :isValid="addedExpenseValid"
+      <enter-expense-form ref="expenseForm"
+                        :isValid="addedExpenseValid"
                         :validChanged="valid => addedExpenseValid = valid"
-                        @ok="addExpenseOkSuccessful"
-                        @okEdited="editExpenseOkSuccessful"
                         :groupMembers="groupMembers"
-                        :cancelled="expenseModalCancelled"
                         :inputExpense="currentDialogExpense"
       >
-      </add-expense-form>
+      </enter-expense-form>
     </a-modal>
     <a-modal ref="editGroupMembersModal"
                            v-model="editGroupMembersModalVisible"
@@ -136,7 +133,7 @@
     <edit-group-members-form ref="editGroupMembersForm"
                              :inputGroupMembers="groupMembers"
                              :groupEventId="groupEvent._id"
-                             @finished="groupMembersModalFinished"
+                             @finished="groupMembersModalOkFinished"
     >
     </edit-group-members-form>
   </a-modal>
@@ -151,7 +148,7 @@ import VueFilterDateFormat from 'vue-filter-date-format'
 import Affix from 'vue-affix'
 import moment from 'moment'
 
-import AddExpense from '@/components/AddExpense'
+import EnterExpense from '@/components/EnterExpense'
 import GroupMembers from '@/components/GroupMembers'
 import GroupBillSplitterService from '@/services/groupbillsplitterservice'
 
@@ -163,14 +160,13 @@ export default {
   name: 'GroupEvent',
   data () {
     return {
-      addExpenseModalVisible: false,
+      enterExpenseModalVisible: false,
       editGroupMembersModalVisible: false,
       addedExpenseValid: false,
       groupEvent: {},
       groupMembers: {},
       expenses: [],
       transactions: [],
-      expenseModalCancelled: false,
       buttonAffixActivated: false,
       currentDialogExpense: null,
       labelHighlighted: false,
@@ -227,7 +223,7 @@ export default {
     }
   },
   components: {
-    'add-expense-form': AddExpense,
+    'enter-expense-form': EnterExpense,
     'edit-group-members-form': GroupMembers
   },
   methods: {
@@ -286,34 +282,11 @@ export default {
     },
     addExpense () {
       this.currentDialogExpense = null
-      this.addExpenseModalVisible = true
-    },
-    addExpenseOkSuccessful (expense) {
-      expense._id = ''
-      this.expenses.push(expense)
-      expense._id = undefined
-      GroupBillSplitterService.postExpense(this.$route.params.id, expense)
-        .then(res => {
-          expense._id = res.data.data._id
-        })
-        .catch(err => {
-          console.log('Adding expense failed: ' + err)
-          this.fetchData()
-        })
+      this.enterExpenseModalVisible = true
     },
     editExpense (id) {
       this.currentDialogExpense = this.expenses[this.expenses.findIndex(e => e._id === id)]
-      this.addExpenseModalVisible = true
-    },
-    editExpenseOkSuccessful (expense) {
-      let expenseIndex = this.expenses.findIndex(e => e._id === expense._id)
-      this.expenses.splice(expenseIndex, 1, expense)
-      GroupBillSplitterService.putExpense(this.$route.params.id, expense._id, expense)
-        .then()
-        .catch(err => {
-          console.log('Editing expense failed: ' + err)
-          this.fetchData()
-        })
+      this.enterExpenseModalVisible = true
     },
     deleteExpense (id) {
       let expenseIndex = this.expenses.findIndex(e => e._id === id)
@@ -326,24 +299,43 @@ export default {
         })
     },
     expenseModalOkPressed () {
-      this.expenseModalCancelled = false
-      if (this.addedExpenseValid) {
-        this.addExpenseModalVisible = false
-      }
+      this.$refs.expenseForm.okPressed(this.expenseModalOkFinished)
     },
-    expenseModalCancelPressed () {
-      this.expenseModalCancelled = true
-      console.log('Set cancelled')
+    expenseModalOkFinished (expense, formType) {
+      this.enterExpenseModalVisible = false
+      if (formType === 'added') {
+        // Add new expense to list and post it to server
+        expense._id = ''
+        this.expenses.push(expense)
+        expense._id = undefined
+        GroupBillSplitterService.postExpense(this.$route.params.id, expense)
+          .then(res => {
+            expense._id = res.data.data._id
+          })
+          .catch(err => {
+            console.log('Adding expense failed: ' + err)
+            this.fetchData()
+          })
+      } else if (formType === 'edited') {
+        // Replace edited expense in list and put it on server
+        let expenseIndex = this.expenses.findIndex(e => e._id === expense._id)
+        this.expenses.splice(expenseIndex, 1, expense)
+        GroupBillSplitterService.putExpense(this.$route.params.id, expense._id, expense)
+          .then()
+          .catch(err => {
+            console.log('Editing expense failed: ' + err)
+            this.fetchData()
+          })
+      }
     },
     editGroupMembers () {
       this.editGroupMembersModalVisible = true
     },
     groupMembersModalOkPressed () {
-      this.$refs.editGroupMembersForm.okPressed(this.groupMembersModalFinished)
+      this.$refs.editGroupMembersForm.okPressed(this.groupMembersModalOkFinished)
     },
-    groupMembersModalFinished () {
+    groupMembersModalOkFinished () {
       this.editGroupMembersModalVisible = false
-      console.log('Running..')
       this.fetchGroupMembers()
     },
     tabChanged (key) {

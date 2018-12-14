@@ -60,7 +60,7 @@ let moment = require('moment')
 Vue.use(Antd)
 
 export default {
-  name: 'AddExpense',
+  name: 'EnterExpense',
   data () {
     return {
       description: '',
@@ -72,7 +72,7 @@ export default {
       sharingMembersEnterType: 'all'
     }
   },
-  props: ['validChanged', 'groupMembers', 'cancelled', 'inputExpense'],
+  props: ['validChanged', 'groupMembers', 'inputExpense'],
   mounted () {
     this.$refs.firstInput.focus()
     this.validChanged(false)
@@ -80,6 +80,21 @@ export default {
   methods: {
     focusSharedMemberSelection () {
       this.$refs.selectSharingGroupMembersElement.focus()
+    },
+    okPressed (confirmationCallback) {
+      let expense = {
+        description: this.description,
+        amount: this.amount,
+        payingGroupMember: this.payingGroupMember,
+        sharingGroupMembers: this.sharingGroupMembers,
+        date: this.date
+      }
+      if (!this.inputExpense) {
+        confirmationCallback(expense, 'added')
+      } else {
+        expense._id = this.inputExpense._id
+        confirmationCallback(expense, 'edited')
+      }
     }
   },
   computed: {
@@ -110,24 +125,6 @@ export default {
     }
   },
   destroyed () {
-    console.log('this.cancelled = ' + this.cancelled)
-    console.log(this.sharingGroupMembers)
-    if (!this.cancelled) {
-      let expense = {
-        description: this.description,
-        amount: this.amount,
-        payingGroupMember: this.payingGroupMember,
-        sharingGroupMembers: this.sharingGroupMembers,
-        date: this.date
-      }
-      console.log(expense.date)
-      if (!this.inputExpense) {
-        this.$emit('ok', expense)
-      } else {
-        expense._id = this.inputExpense._id
-        this.$emit('okEdited', expense)
-      }
-    }
   }
 }
 </script>

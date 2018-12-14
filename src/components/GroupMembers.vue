@@ -7,22 +7,22 @@
           <a-col>
             Member #{{groupMembers.indexOf(member) + 1}}:
           </a-col>
-          <a-row>
-            <a-col :span=8>
+          <div style="width: auto; display: flex; justify-content: space-between">
+            <div style="width: 33%">
               <a-input v-model="member.member.name" placeholder="What's the name?"></a-input>
-            </a-col>
-            <a-col :offset=1 :span=12>
+            </div>
+            <div style="width: 56%">
               <a-input v-model="member.member.email" placeholder="What's the email address? (optional)"></a-input>
-            </a-col>
-            <a-col :offset=1 :span=1>
+            </div>
+            <div style="width: 5%; margin-right: 8px">
               <a-button size="small"
                         shape="circle"
                         icon='delete'
                         style="margin-top: 3px"
                         @click="deleteMember(member)"
                         :loading="member.confirmDeleteLoading"/>
-            </a-col>
-          </a-row>
+            </div>
+          </div>
         </div>
       </a-list-item>
     </a-list>
