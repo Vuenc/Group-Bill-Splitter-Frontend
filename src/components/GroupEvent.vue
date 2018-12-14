@@ -120,6 +120,7 @@
       <enter-expense-form ref="expenseForm"
                         :groupMembers="groupMembers"
                         :inputExpense="currentDialogExpense"
+                        @submit="expenseModalOkPressed"
       >
       </enter-expense-form>
     </a-modal>
@@ -131,7 +132,7 @@
     <edit-group-members-form ref="editGroupMembersForm"
                              :inputGroupMembers="groupMembers"
                              :groupEventId="groupEvent._id"
-                             @finished="groupMembersModalOkFinished"
+                             @submit="groupMembersModalOkPressed"
     >
     </edit-group-members-form>
   </a-modal>

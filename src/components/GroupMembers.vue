@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <a-form @submit="$emit('submit')">
     <a-list style="height: 500px; overflow-y: scroll; margin-top: 20px">
       <!-- <a-list-item v-for="member in groupMembers" :key="member.listId"> -->
       <a-list-item v-for="(v, index) in $v.groupMembers.$each.$iter" :key="v.member.listId">
@@ -32,7 +32,8 @@
         Add member
       </a-button>
     </div>
-  </div>
+    <a-button html-type="submit" style="visibility: hidden"/>
+  </a-form>
 </template>
 
 <script>

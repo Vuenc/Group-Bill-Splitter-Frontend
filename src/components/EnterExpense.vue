@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <a-form @submit="$emit('submit')">
     <a-form-item label="Description">
       <a-input ref="firstInput" v-model="description" placeholder="What was paid for?" :class="{'input-error': $v.description.$error}"></a-input>
     </a-form-item>
@@ -58,8 +58,9 @@
     </a-form-item>
     <a-form-item label="Date:">
       <a-date-picker v-model=date></a-date-picker>
+      <a-button html-type="submit" style="visibility: hidden"/>
     </a-form-item>
-  </div>
+  </a-form>
 </template>
 
 <script>
