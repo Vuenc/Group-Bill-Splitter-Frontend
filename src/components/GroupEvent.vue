@@ -34,8 +34,8 @@
         </affix>
       </a-col>
       <a-col :offset=2 :span=12>
-        <a-tabs>
-          <a-tab-pane tab="Manage Expenses" key="1">
+        <a-tabs @change="tabChanged">
+          <a-tab-pane tab="Manage Expenses" key="expenses">
             <div id="top-table-div">
               <div @change="state => buttonAffixActivated = state">
                 <div style="margin: 0px 0px 10px 0px; min-height: 60px; padding: 10px 0px 10px 0px">
@@ -50,8 +50,8 @@
                      :pagination="expenses.length > 50 ? {pageSize: 50} : false"
             >
               <template slot="amount" slot-scope="amount">
-                  <div class=rightaligned>
-                    {{groupEvent.currencyPrefix}}{{amount | currency}}
+                  <div class="rightaligned currency-label">
+                    {{groupEvent.currencyPrefix}} {{amount | currency}}
                   </div>
               </template>
               <template slot="description" slot-scope="description">
@@ -93,6 +93,21 @@
               </template>
             </a-table>
             </div>
+          </a-tab-pane>
+          <a-tab-pane tab="Settle Debts" key="transactions">
+            <h2>Transactions</h2>
+            These transactions settle all debts between the group members:
+            <a-list style="margin-top: 10px">
+              <a-list-item v-for="transaction of transactions" :key="transaction.source + transaction.target">
+                <div style="font-size: 110%">
+                  <label style="margin-right: 1ex;">#{{transactions.indexOf(transaction) + 1}}:</label>
+                  <b class="formatting-inline-label">{{groupMembers[transaction.source].name}}</b>
+                  pays <label class="formatting-inline-label currency-label">
+                  {{groupEvent.currencyPrefix}} {{transaction.amount | currency}}</label>
+                  to <b class="formatting-inline-label">{{groupMembers[transaction.target].name}}</b>
+                </div>
+              </a-list-item>
+            </a-list>
           </a-tab-pane>
         </a-tabs>
       </a-col>
@@ -154,13 +169,14 @@ export default {
       groupEvent: {},
       groupMembers: {},
       expenses: [],
+      transactions: [],
       expenseModalCancelled: false,
       buttonAffixActivated: false,
       currentDialogExpense: null,
       labelHighlighted: false,
       columns: [
         {
-          title: 'Payed By',
+          title: 'Paid By',
           dataIndex: 'payingGroupMember',
           // sorter: true,
           width: '15%',
@@ -176,8 +192,8 @@ export default {
         {
           title: 'Amount',
           dataIndex: 'amount',
-          // sorter: true,
-          width: '10%',
+          sorter: (a, b) => a.amount - b.amount,
+          width: '12%',
           scopedSlots: { customRender: 'amount' }
         },
         {
@@ -237,6 +253,14 @@ export default {
           console.log(err)
         })
     },
+    fetchTransactions () {
+      GroupBillSplitterService.fetchTransactions(this.$route.params.id)
+        .then(transactions => this.setTransactions(transactions.data))
+        .catch(err => {
+          this.setData({}, [], [])
+          console.log(err)
+        })
+    },
     setData (groupEvent, groupMembers, expenses) {
       this.groupEvent = groupEvent
 
@@ -253,6 +277,12 @@ export default {
         let id = member._id.toString()
         this.groupMembers[id] = member
       }
+    },
+    setTransactions (transactions) {
+      for (let t of transactions) {
+        t.amount = parseFloat(t.amount)
+      }
+      this.transactions = transactions
     },
     addExpense () {
       this.currentDialogExpense = null
@@ -315,6 +345,12 @@ export default {
       this.editGroupMembersModalVisible = false
       console.log('Running..')
       this.fetchGroupMembers()
+    },
+    tabChanged (key) {
+      if (key === 'transactions') {
+        this.transactions = []
+        this.fetchTransactions()
+      }
     }
   },
   created () {
@@ -382,5 +418,14 @@ export default {
   }
   .ant-list {
     font-family: "Cantarell"
+  }
+  .formatting-inline-label {
+    margin-right: 0.3ex;
+    margin-left: 0.3ex;
+    font-size: 120%
+  }
+  .currency-label {
+    word-spacing: -0.2ex;
+    margin-right: 0.5ex
   }
 </style>
