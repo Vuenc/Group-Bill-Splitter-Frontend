@@ -2,9 +2,11 @@
   <div>
     <a-row class="somemorepadding"  style="padding: 30px 30px 5px 30px; margin: 0px 0px 30px 0px; background: #1890ff">
       <a-col :offset=1>
-        <h1 class="leftaligned" style="color: #eeeeee; white-space: nowrap">
-          Group Event:
-          <label style="color: white">
+        <h1 class="leftaligned" style="white-space: nowrap">
+          <label style="color: #eeeeee; font-family: 'Cantarell'; font-size: 120%">
+            Event:
+          </label>
+          <label style="color: white; font-family: 'Cantarell Light'; font-size: 140%; margin-left: 10px">
             {{groupEvent.name}}
           </label>
         </h1>
@@ -15,10 +17,10 @@
         <affix relative-element-selector="#top-table-div" style="width: 300px">
           <div class="somemorepadding">
             <div style="white-space: nowrap; display: flex; justify-content: space-between">
-              <h3>
+              <h2>
                 Group Members:
-              </h3>
-              <a-button size="small" shape="circle" icon='edit' @click="editGroupMembers"/>
+              </h2>
+              <a-button size="small" shape="circle" icon='edit' @click="editGroupMembers" style="margin-top: 5px"/>
             </div>
             <a-list>
               <a-list-item v-for="member of groupMembers" :key="member._id">
@@ -32,64 +34,67 @@
         </affix>
       </a-col>
       <a-col :offset=2 :span=12>
-        <div id="top-table-div">
-          <div @change="state => buttonAffixActivated = state">
-            <div style="margin: 0px 0px 10px 0px; min-height: 60px; padding: 10px 0px 10px 0px">
-              <a-button :size="buttonAffixActivated ? 'large' : 'large'" type="primary" style="margin: 0px 10px 0px 0px"
-                        @click="addExpense">Add Expense</a-button>
-              <a-button :size="buttonAffixActivated ? 'large' : 'large'">Settle Expenses</a-button>
-            </div>
-          </div>
-        <a-table id="expenses-table"
-                 :columns="columns"
-                 :rowKey="record => record._id"
-                 :dataSource="expenses"
-                 :pagination="{pageSize: 50}"
-        >
-          <template slot="amount" slot-scope="amount">
-              <div class=rightaligned>
-                {{groupEvent.currencyPrefix}}{{amount | currency}}
-              </div>
-          </template>
-          <template slot="description" slot-scope="description">
-            <div :class="labelHighlighted ? 'label-highlight' : ''">
-              <a-tooltip>
-                <template slot="title">
-                  <a-icon type="edit"></a-icon>
-                </template>
-                <div style="display: flex; justify-content: stretch; cursor: pointer"
-                     @mouseover="labelHighlighted=true"
-                     @mouseleave="labelHighlighted=false"
-                     @click="editExpense(_id, 'description')">
-                  {{description}}
+        <a-tabs>
+          <a-tab-pane tab="Manage Expenses" key="1">
+            <div id="top-table-div">
+              <div @change="state => buttonAffixActivated = state">
+                <div style="margin: 0px 0px 10px 0px; min-height: 60px; padding: 10px 0px 10px 0px">
+                  <a-button :size="buttonAffixActivated ? 'large' : 'large'" type="primary" style="margin: 0px 10px 0px 0px"
+                            @click="addExpense">Add Expense</a-button>
                 </div>
-              </a-tooltip>
+              </div>
+            <a-table id="expenses-table"
+                     :columns="columns"
+                     :rowKey="record => record._id"
+                     :dataSource="expenses"
+                     :pagination="expenses.length > 50 ? {pageSize: 50} : false"
+            >
+              <template slot="amount" slot-scope="amount">
+                  <div class=rightaligned>
+                    {{groupEvent.currencyPrefix}}{{amount | currency}}
+                  </div>
+              </template>
+              <template slot="description" slot-scope="description">
+                <div :class="labelHighlighted ? 'label-highlight' : ''">
+                  <a-tooltip>
+                    <template slot="title">
+                      <a-icon type="edit"></a-icon>
+                    </template>
+                    <div style="display: flex; justify-content: stretch; cursor: pointer"
+                         @mouseover="labelHighlighted=true"
+                         @mouseleave="labelHighlighted=false"
+                         @click="editExpense(_id, 'description')">
+                      {{description}}
+                    </div>
+                  </a-tooltip>
+                </div>
+              </template>
+              <template slot="payingGroupMember" slot-scope="payingGroupMember">
+                <div>
+                  {{groupMembers[payingGroupMember].name}}
+                </div>
+              </template>
+              <template slot="sharingGroupMembers" slot-scope="sharingGroupMembers">
+                <div v-if="sharingGroupMembers.length > 0">
+                  {{sharingGroupMembers.map(m => groupMembers[m].name).reduce((a, b) => a + ", " + b)}}
+                </div>
+                <div v-else><i>Everyone</i></div>
+              </template>
+              <template slot="date" slot-scope="date">
+                <div>
+                  {{new Date(date) | dateFormat('DD.MM.YYYY')}}
+                </div>
+              </template>
+              <template slot="actions" slot-scope="_id">
+                <div style="white-space: nowrap">
+                  <a-button size="small" shape="circle" icon='edit' @click="editExpense(_id)"/>
+                  <a-button size="small" shape="circle" icon='delete' @click="deleteExpense(_id)"/>
+                </div>
+              </template>
+            </a-table>
             </div>
-          </template>
-          <template slot="payingGroupMember" slot-scope="payingGroupMember">
-            <div>
-              {{groupMembers[payingGroupMember].name}}
-            </div>
-          </template>
-          <template slot="sharingGroupMembers" slot-scope="sharingGroupMembers">
-            <div v-if="sharingGroupMembers.length > 0">
-              {{sharingGroupMembers.map(m => groupMembers[m].name).reduce((a, b) => a + ", " + b)}}
-            </div>
-            <div v-else><i>Everyone</i></div>
-          </template>
-          <template slot="date" slot-scope="date">
-            <div>
-              {{new Date(date) | dateFormat('DD.MM.YYYY')}}
-            </div>
-          </template>
-          <template slot="actions" slot-scope="_id">
-            <div style="white-space: nowrap">
-              <a-button size="small" shape="circle" icon='edit' @click="editExpense(_id)"/>
-              <a-button size="small" shape="circle" icon='delete' @click="deleteExpense(_id)"/>
-            </div>
-          </template>
-        </a-table>
-        </div>
+          </a-tab-pane>
+        </a-tabs>
       </a-col>
     </a-row>
     <a-modal ref="addExpenseModal"
@@ -181,9 +186,10 @@ export default {
           scopedSlots: { customRender: 'sharingGroupMembers' }
         },
         {
-          title: 'Payment Date',
+          title: 'Date',
           dataIndex: 'date',
           width: '10%',
+          sorter: true,
           scopedSlots: { customRender: 'date' }
         },
         {
@@ -366,5 +372,11 @@ export default {
   }
   .label-highlight {
     background: #feffe6;
+  }
+  .ant-table {
+    font-family: "Cantarell"
+  }
+  .ant-list {
+    font-family: "Cantarell"
   }
 </style>
