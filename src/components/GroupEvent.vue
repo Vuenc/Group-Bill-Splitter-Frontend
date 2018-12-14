@@ -118,8 +118,6 @@
              @ok="expenseModalOkPressed"
     >
       <enter-expense-form ref="expenseForm"
-                        :isValid="addedExpenseValid"
-                        :validChanged="valid => addedExpenseValid = valid"
                         :groupMembers="groupMembers"
                         :inputExpense="currentDialogExpense"
       >
@@ -162,7 +160,6 @@ export default {
     return {
       enterExpenseModalVisible: false,
       editGroupMembersModalVisible: false,
-      addedExpenseValid: false,
       groupEvent: {},
       groupMembers: {},
       expenses: [],

@@ -1,13 +1,18 @@
 <template>
   <div>
     <a-form-item label="Description">
-      <a-input ref="firstInput" v-model="description" placeholder="What was paid for?"></a-input>
+      <a-input ref="firstInput" v-model="description" placeholder="What was paid for?" :class="{'input-error': $v.description.$error}"></a-input>
     </a-form-item>
     <a-form-item label="Amount">
       <div>
         <a-row type="flex" justify="space-between">
           <a-col :span=9  class="somemarginright">
-            <a-input style="min-width: 100%" v-model="amount" placeholder="How much?"></a-input>
+            <a-input style="min-width: 100%"
+                     v-model="amount"
+                     placeholder="How much?"
+                     :class="{'input-error': $v.amount.$error}"
+                     @blur="formatAmount"
+            ></a-input>
           </a-col>
           <a-col  style="flex-grow: 100; display: flex; justify-content: space-between">
               <label>{{currencyPrefix}}</label>
@@ -18,10 +23,13 @@
                       placeholder="Who paid?"
                       style="min-width: 100%"
                       v-model="payingGroupMember"
-                      showSearch>
+                      :class="{'input-error': $v.payingGroupMember.$error}"
+                      showSearch
+            >
               <a-select-option v-for="member of groupMembers"
                                :key="member._id"
-                               :value="member._id">
+                               :value="member._id"
+              >
                 {{member.name}}</a-select-option>
             </a-select>
           </a-col>
@@ -37,10 +45,13 @@
                   mode="multiple"
                   style="width: 100%"
                   @focus="sharingMembersEnterType = 'select'"
-                  :placeholder="sharingMembersEnterType === 'all' ? 'All users share the expense' : 'Select users...'">
+                  :placeholder="sharingMembersEnterType === 'all' ? 'All users share the expense' : 'Select users...'"
+                  :class="{'input-error': $v.sharingGroupMembers.$error}"
+        >
           <a-select-option v-for="member of groupMembers"
                            :key="member._id"
                            :value="member._id"
+                           :class="{'input-error': $v.payingGroupMember.$error}"
           >{{member.name}}</a-select-option>
         </a-select>
       </a-radio-group>
@@ -55,6 +66,8 @@
 import Vue from 'vue'
 import Antd from 'ant-design-vue'
 import 'ant-design-vue/dist/antd.css'
+import { required, decimal, requiredIf } from 'vuelidate/lib/validators'
+
 let moment = require('moment')
 
 Vue.use(Antd)
@@ -72,16 +85,19 @@ export default {
       sharingMembersEnterType: 'all'
     }
   },
-  props: ['validChanged', 'groupMembers', 'inputExpense'],
+  props: ['groupMembers', 'inputExpense'],
   mounted () {
     this.$refs.firstInput.focus()
-    this.validChanged(false)
   },
   methods: {
     focusSharedMemberSelection () {
       this.$refs.selectSharingGroupMembersElement.focus()
     },
     okPressed (confirmationCallback) {
+      this.$v.$touch()
+      if (this.$v.$invalid) {
+        return
+      }
       let expense = {
         description: this.description,
         amount: this.amount,
@@ -95,21 +111,15 @@ export default {
         expense._id = this.inputExpense._id
         confirmationCallback(expense, 'edited')
       }
-    }
-  },
-  computed: {
-    isValid () {
-      let valid = this.description !== '' &&
-        this.amount !== null &&
-        this.payingGroupMember !== '' &&
-        (this.sharingMembersEnterType === 'all' ||
-         this.sharingGroupMembers.length > 0)
-      return valid
-    }
-  },
-  watch: {
-    isValid (valid) {
-      this.validChanged(valid)
+    },
+    formatAmount () {
+      if (this.amount !== '') {
+        this.$v.amount.$touch()
+      }
+      const amt = Number(this.amount)
+      if (amt) {
+        this.amount = amt.toLocaleString(undefined, {minimumFractionDigits: 2})
+      }
     }
   },
   created () {
@@ -124,7 +134,23 @@ export default {
       this.sharingMembersEnterType = this.sharingGroupMembers.length > 0 ? 'select' : 'all'
     }
   },
-  destroyed () {
+  validations: {
+    description: {
+      required
+    },
+    amount: {
+      required,
+      decimal
+    },
+    payingGroupMember: {
+      required
+    },
+    date: {
+      required
+    },
+    sharingGroupMembers: {
+      requiredIf: requiredIf((vue) => vue.sharingMembersEnterType === 'select')
+    }
   }
 }
 </script>
@@ -139,5 +165,11 @@ export default {
   }
   .nowrap {
     white-space: nowrap;
+  }
+  .input-error {
+    border-color: #f5222d
+  }
+  .input-error >>> .ant-select-selection {
+    border-color: #f5222d !important;
   }
 </style>

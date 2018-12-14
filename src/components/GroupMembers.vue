@@ -1,26 +1,27 @@
 <template>
   <div>
     <a-list style="height: 500px; overflow-y: scroll; margin-top: 20px">
-      <a-list-item v-for="member in groupMembers" :key="member.listId">
-        <div :ref="'memberdiv-' + groupMembers.indexOf(member)"
+      <!-- <a-list-item v-for="member in groupMembers" :key="member.listId"> -->
+      <a-list-item v-for="(v, index) in $v.groupMembers.$each.$iter" :key="v.member.listId">
+        <div :ref="'memberdiv-' + index"
              style="white-space: nowrap">
           <a-col>
-            Member #{{groupMembers.indexOf(member) + 1}}:
+            Member #{{parseInt(index) + 1}}:
           </a-col>
           <div style="width: auto; display: flex; justify-content: space-between">
             <div style="width: 33%">
-              <a-input v-model="member.member.name" placeholder="What's the name?"></a-input>
+              <a-input v-model="v.$model.member.name" placeholder="What's the name?" :class="{'input-error': v.member.name.$error}"></a-input>
             </div>
             <div style="width: 56%">
-              <a-input v-model="member.member.email" placeholder="What's the email address? (optional)"></a-input>
+              <a-input v-model="v.$model.member.email" placeholder="What's the email address? (optional)" :class="{'input-error': v.member.email.$error}"></a-input>
             </div>
             <div style="width: 5%; margin-right: 8px">
               <a-button size="small"
                         shape="circle"
                         icon='delete'
                         style="margin-top: 3px"
-                        @click="deleteMember(member)"
-                        :loading="member.confirmDeleteLoading"/>
+                        @click="deleteMember(v.$model)"
+                        :loading="v.$model.confirmDeleteLoading"/>
             </div>
           </div>
         </div>
@@ -40,6 +41,7 @@ import 'ant-design-vue/dist/antd.css'
 import Antd from 'ant-design-vue'
 
 import GroupBillSplitterService from '@/services/groupbillsplitterservice'
+import { required, email } from 'vuelidate/lib/validators'
 
 Vue.use(Antd)
 
@@ -62,7 +64,6 @@ export default {
     }],
   data () {
     let groupMembers = []
-    console.log(this.inputGroupMembers)
     let i = 0
     for (let memberId in this.inputGroupMembers) {
       groupMembers.push({
@@ -72,7 +73,6 @@ export default {
         member: this.cloneMember(this.inputGroupMembers[memberId])
       })
     }
-    console.log(groupMembers)
     return {
       groupMembers,
       nextListId: i
@@ -131,10 +131,13 @@ export default {
       return promises
     },
     okPressed (confirmationCallback) {
+      this.$v.$touch()
+      if (this.$v.$invalid) {
+        return
+      }
       let promises = this.applyChanges()
       Promise.all(promises)
         .then(() => {
-          console.log('emitting...')
           confirmationCallback()
         })
     }
@@ -143,12 +146,25 @@ export default {
   created () {
     this.$message.config({maxCount: 1})
   },
-  beforeDestroy () {
-    this.applyChanges()
+  validations: {
+    groupMembers: {
+      $each: {
+        member: {
+          name: {
+            required
+          },
+          email: {
+            email
+          }
+        }
+      }
+    }
   }
 }
 </script>
 
 <style scoped>
-
+.input-error {
+  border-color: #f5222d
+}
 </style>
