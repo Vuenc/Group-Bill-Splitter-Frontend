@@ -134,6 +134,7 @@ import 'ant-design-vue/dist/antd.css'
 import Antd from 'ant-design-vue'
 import VueFilterDateFormat from 'vue-filter-date-format'
 import Affix from 'vue-affix'
+import moment from 'moment'
 
 import AddExpense from '@/components/AddExpense'
 import GroupMembers from '@/components/GroupMembers'
@@ -189,7 +190,10 @@ export default {
           title: 'Date',
           dataIndex: 'date',
           width: '10%',
-          sorter: true,
+          sorter: (a, b) => {
+            return moment(a.date).isAfter(moment(b.date)) ? 1 : -1
+          },
+          defaultSortOrder: 'descend',
           scopedSlots: { customRender: 'date' }
         },
         {

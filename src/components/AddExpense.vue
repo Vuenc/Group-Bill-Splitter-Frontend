@@ -120,6 +120,7 @@ export default {
         sharingGroupMembers: this.sharingGroupMembers,
         date: this.date
       }
+      console.log(expense.date)
       if (!this.inputExpense) {
         this.$emit('ok', expense)
       } else {
