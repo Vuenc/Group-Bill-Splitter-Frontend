@@ -1,6 +1,6 @@
 <template>
   <a-form @submit="$emit('submit')">
-    <a-list style="height: 500px; overflow-y: scroll; margin-top: 20px">
+    <a-list :style="`max-height: ${maxListHeight}; overflow-y: auto; margin-top: 20px`">
       <!-- <a-list-item v-for="member in groupMembers" :key="member.listId"> -->
       <a-list-item v-for="(v, index) in $v.groupMembers.$each.$iter" :key="v.member.listId">
         <div :ref="'memberdiv-' + index"
@@ -69,7 +69,7 @@ export default {
     for (let memberId in this.inputGroupMembers) {
       groupMembers.push({
         listId: i++,
-        newlyAdded: false,
+        newlyAdded: !this.inputGroupMembersExist,
         confirmDeleteLoading: false,
         member: this.cloneMember(this.inputGroupMembers[memberId])
       })
@@ -131,10 +131,13 @@ export default {
       }
       return promises
     },
-    okPressed (confirmationCallback) {
+    okPressed (confirmationCallback, groupEventId) {
       this.$v.$touch()
       if (this.$v.$invalid) {
         return
+      }
+      if (groupEventId) {
+        this.groupEventId = groupEventId
       }
       let promises = this.applyChanges()
       Promise.all(promises)
@@ -143,7 +146,7 @@ export default {
         })
     }
   },
-  props: ['inputGroupMembers', 'groupEventId'],
+  props: ['inputGroupMembers', 'inputGroupMembersExist', 'groupEventId', 'maxListHeight'],
   created () {
     this.$message.config({maxCount: 1})
   },

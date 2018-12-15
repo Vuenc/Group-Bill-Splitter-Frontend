@@ -120,6 +120,7 @@
       <enter-expense-form ref="expenseForm"
                         :groupMembers="groupMembers"
                         :inputExpense="currentDialogExpense"
+                        :currencyPrefix="groupEvent.currencyPrefix"
                         @submit="expenseModalOkPressed"
       >
       </enter-expense-form>
@@ -129,12 +130,14 @@
                            :destroyOnClose="true"
                            @ok="groupMembersModalOkPressed"
     >
-    <edit-group-members-form ref="editGroupMembersForm"
-                             :inputGroupMembers="groupMembers"
-                             :groupEventId="groupEvent._id"
-                             @submit="groupMembersModalOkPressed"
+    <enter-group-members-form ref="enterGroupMembersForm"
+                              :inputGroupMembers="groupMembers"
+                              :groupEventId="groupEvent._id"
+                              maxListHeight="500px"
+                              :inputGroupMembersExist="true"
+                              @submit="groupMembersModalOkPressed"
     >
-    </edit-group-members-form>
+    </enter-group-members-form>
   </a-modal>
   </div>
 </template>
@@ -222,7 +225,7 @@ export default {
   },
   components: {
     'enter-expense-form': EnterExpense,
-    'edit-group-members-form': GroupMembers
+    'enter-group-members-form': GroupMembers
   },
   methods: {
     fetchData () {
@@ -330,7 +333,7 @@ export default {
       this.editGroupMembersModalVisible = true
     },
     groupMembersModalOkPressed () {
-      this.$refs.editGroupMembersForm.okPressed(this.groupMembersModalOkFinished)
+      this.$refs.enterGroupMembersForm.okPressed(this.groupMembersModalOkFinished)
     },
     groupMembersModalOkFinished () {
       this.editGroupMembersModalVisible = false

@@ -82,11 +82,10 @@ export default {
       payingGroupMember: [],
       sharingGroupMembers: [],
       date: moment(),
-      currencyPrefix: '€ ',
       sharingMembersEnterType: 'all'
     }
   },
-  props: ['groupMembers', 'inputExpense'],
+  props: ['groupMembers', 'inputExpense', 'currencyPrefix'],
   mounted () {
     this.$refs.firstInput.focus()
   },
@@ -171,6 +170,6 @@ export default {
     border-color: #f5222d
   }
   .input-error >>> .ant-select-selection {
-    border-color: #f5222d !important;
+    border-color: #f5222d;
   }
 </style>
