@@ -2,6 +2,7 @@ import Vue from 'vue'
 import Router from 'vue-router'
 import GroupEvent from '@/components/GroupEvent'
 import CreateGroupEvent from '@/components/CreateGroupEvent'
+import LandingPage from '@/components/LandingPage'
 
 Vue.use(Router)
 
@@ -13,9 +14,14 @@ export default new Router({
       component: GroupEvent
     },
     {
-      path: '/',
+      path: '/groupEvents',
       name: 'CreateGroupEvent',
       component: CreateGroupEvent
+    },
+    {
+      path: '/',
+      name: 'LandingPage',
+      component: LandingPage
     }
   ]
 })
