@@ -18,9 +18,10 @@
                      :class="{'input-error': $v.name.$error}"/>
           </a-form-item>
           <a-form-item label="Currency">
-            <a-select v-model="currency"
+            <a-select v-model="currency.currency"
                       placeholder="What currency did you pay in?"
-                      :class="{'input-error': $v.currency.$error}">
+                      :class="{'input-error': $v.currency.$error}"
+            >
               <a-select-option value="€">Euro (€)</a-select-option>
               <a-select-option value="$">USD ($)</a-select-option>
               <a-select-option value="£">GPB (£)</a-select-option>
@@ -31,7 +32,8 @@
                                       maxListHeight="350px"
                                       style="margin-top: -25px"
                                       :inputGroupMembersExist="false"
-                                      :inputGroupMembers="[{name: '', email: ''}]"/>
+                                      :inputGroupMembers="[{name: '', email: ''}]"
+            />
           </a-form-item>
           <a-form-item>
             <a-row>
@@ -63,7 +65,7 @@ export default {
   data () {
     return {
       name: '',
-      currency: '',
+      currency: {},
       groupEventId: '',
       postEventLoading: false
     }
@@ -72,7 +74,6 @@ export default {
   methods: {
     createEvent () {
       this.$v.$touch()
-      console.log(this.$v.name.$error)
       this.$refs.enterGroupMembersForm.$v.$touch()
       if (this.$v.$error || this.$refs.enterGroupMembersForm.$v.$error) {
         this.$message.destroy()
@@ -81,9 +82,8 @@ export default {
       }
 
       this.postEventLoading = true
-      GroupBillSplitterService.postGroupEvent({name: this.name, currencyPrefix: this.currency})
+      GroupBillSplitterService.postGroupEvent({name: this.name, currencyPrefix: this.currency.currency})
         .then(event => {
-          console.log(event)
           this.groupEventId = event.data.data._id
           this.$refs.enterGroupMembersForm.okPressed(() => {
             this.$router.push({name: 'GroupEvent', params: {id: this.groupEventId}})
@@ -107,8 +107,11 @@ export default {
     name: {
       required
     },
+    // Double nesting necessary for select element to show placeholder
     currency: {
-      required
+      currency: {
+        required
+      }
     }
   }
 }

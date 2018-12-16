@@ -1,27 +1,35 @@
 <template>
   <a-form @submit="$emit('submit')">
-    <a-list :style="`max-height: ${maxListHeight}; overflow-y: auto; margin-top: 20px`">
-      <!-- <a-list-item v-for="member in groupMembers" :key="member.listId"> -->
+    <a-list :style="`max-height: ${maxListHeight}; overflow-y: auto;`">
+      <resize-observer @notify="listResized"/>
       <a-list-item v-for="(v, index) in $v.groupMembers.$each.$iter" :key="v.member.listId">
-        <div :ref="'memberdiv-' + index"
-             style="white-space: nowrap">
+        <div style="white-space: nowrap; width: 100%">
           <a-col>
             Member #{{parseInt(index) + 1}}:
           </a-col>
           <div style="width: auto; display: flex; justify-content: space-between">
             <div style="width: 33%">
-              <a-input v-model="v.$model.member.name" placeholder="What's the name?" :class="{'input-error': v.member.name.$error}"></a-input>
+              <a-input :ref="'memberinput-' + index"
+                        v-model="v.$model.member.name"
+                       placeholder="What's the name?"
+                       :class="{'input-error': v.member.name.$error}"
+              ></a-input>
             </div>
             <div style="width: 56%">
-              <a-input v-model="v.$model.member.email" placeholder="What's the email address? (optional)" :class="{'input-error': v.member.email.$error}"></a-input>
+              <a-input v-model="v.$model.member.email"
+                       placeholder="What's the email address? (optional)"
+                       :class="{'input-error': v.member.email.$error}"
+              ></a-input>
             </div>
-            <div style="width: 5%; margin-right: 8px">
+            <div style="margin-right: 5px">
               <a-button size="small"
                         shape="circle"
                         icon='delete'
+                        tabindex="-1"
                         style="margin-top: 3px"
                         @click="deleteMember(v.$model)"
-                        :loading="v.$model.confirmDeleteLoading"/>
+                        :loading="v.$model.confirmDeleteLoading"
+              />
             </div>
           </div>
         </div>
@@ -40,6 +48,7 @@
 import Vue from 'vue'
 import 'ant-design-vue/dist/antd.css'
 import Antd from 'ant-design-vue'
+import { ResizeObserver } from 'vue-resize'
 
 import GroupBillSplitterService from '@/services/groupbillsplitterservice'
 import { required, email } from 'vuelidate/lib/validators'
@@ -76,7 +85,8 @@ export default {
     }
     return {
       groupMembers,
-      nextListId: i
+      nextListId: i,
+      scrollBarVisible: false
     }
   },
   methods: {
@@ -97,6 +107,7 @@ export default {
           email: ''
         }
       })
+      this.memberAdded = true
     },
     deleteMember (member) {
       if (member.newlyAdded) {
@@ -144,9 +155,18 @@ export default {
         .then(() => {
           confirmationCallback()
         })
+    },
+    listResized () {
+      if (this.memberAdded) {
+        let newInput = this.$refs['memberinput-' + (this.groupMembers.length - 1)][0].$el
+        newInput.scrollIntoView()
+        newInput.focus()
+        this.memberAdded = false
+      }
     }
   },
   props: ['inputGroupMembers', 'inputGroupMembersExist', 'groupEventId', 'maxListHeight'],
+  components: {'resize-observer': ResizeObserver},
   created () {
     this.$message.config({maxCount: 1})
   },

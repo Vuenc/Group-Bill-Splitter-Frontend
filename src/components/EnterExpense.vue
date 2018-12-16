@@ -113,12 +113,12 @@ export default {
       }
     },
     formatAmount () {
-      if (this.amount !== '') {
+      if (this.amount) {
         this.$v.amount.$touch()
       }
-      const amt = Number(this.amount)
-      if (amt) {
-        this.amount = amt.toLocaleString(undefined, {minimumFractionDigits: 2})
+      const numberAmount = Number(this.amount)
+      if (numberAmount) {
+        this.amount = numberAmount.toLocaleString(undefined, {minimumFractionDigits: 2, useGrouping: false})
       }
     }
   },

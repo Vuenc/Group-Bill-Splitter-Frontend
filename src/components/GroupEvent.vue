@@ -34,7 +34,7 @@
         </affix>
       </a-col>
       <a-col :offset=2 :span=12>
-        <a-tabs @change="tabChanged">
+        <a-tabs @change="tabChanged" style="font-family: Cantarell;">
           <a-tab-pane tab="Manage Expenses" key="expenses">
             <div id="top-table-div">
               <div @change="state => buttonAffixActivated = state">
@@ -43,71 +43,80 @@
                             @click="addExpense">Add Expense</a-button>
                 </div>
               </div>
-            <a-table id="expenses-table"
-                     :columns="columns"
-                     :rowKey="record => record._id"
-                     :dataSource="expenses"
-                     :pagination="expenses.length > 50 ? {pageSize: 50} : false"
-            >
-              <template slot="amount" slot-scope="amount">
-                  <div class="rightaligned currency-label">
-                    {{groupEvent.currencyPrefix}} {{amount | currency}}
-                  </div>
-              </template>
-              <template slot="description" slot-scope="description">
-                <div :class="labelHighlighted ? 'label-highlight' : ''">
-                  <a-tooltip>
-                    <template slot="title">
-                      <a-icon type="edit"></a-icon>
-                    </template>
-                    <div style="display: flex; justify-content: stretch; cursor: pointer"
-                         @mouseover="labelHighlighted=true"
-                         @mouseleave="labelHighlighted=false"
-                         @click="editExpense(_id, 'description')">
-                      {{description}}
+              <a-table id="expenses-table"
+                       :columns="columns"
+                       :rowKey="record => record._id"
+                       :dataSource="expenses"
+                       :pagination="expenses.length > 50 ? {pageSize: 50} : false"
+                       v-if="expenses.length > 0"
+              >
+                <template slot="amount" slot-scope="amount">
+                    <div class="rightaligned currency-label" style="white-space: nowrap">
+                      {{groupEvent.currencyPrefix}} {{amount | currency}}
                     </div>
-                  </a-tooltip>
-                </div>
-              </template>
-              <template slot="payingGroupMember" slot-scope="payingGroupMember">
-                <div>
-                  {{groupMembers[payingGroupMember].name}}
-                </div>
-              </template>
-              <template slot="sharingGroupMembers" slot-scope="sharingGroupMembers">
-                <div v-if="sharingGroupMembers.length > 0">
-                  {{sharingGroupMembers.map(m => groupMembers[m].name).reduce((a, b) => a + ", " + b)}}
-                </div>
-                <div v-else><i>Everyone</i></div>
-              </template>
-              <template slot="date" slot-scope="date">
-                <div>
-                  {{new Date(date) | dateFormat('DD.MM.YYYY')}}
-                </div>
-              </template>
-              <template slot="actions" slot-scope="_id">
-                <div style="white-space: nowrap">
-                  <a-button size="small" shape="circle" icon='edit' @click="editExpense(_id)"/>
-                  <a-button size="small" shape="circle" icon='delete' @click="deleteExpense(_id)"/>
-                </div>
-              </template>
-            </a-table>
+                </template>
+                <template slot="description" slot-scope="description">
+                  <div :class="labelHighlighted ? 'label-highlight' : ''">
+                    <a-tooltip>
+                      <template slot="title">
+                        <a-icon type="edit"></a-icon>
+                      </template>
+                      <div style="display: flex; justify-content: stretch; cursor: pointer"
+                           @mouseover="labelHighlighted=true"
+                           @mouseleave="labelHighlighted=false"
+                           @click="editExpense(_id, 'description')">
+                        {{description}}
+                      </div>
+                    </a-tooltip>
+                  </div>
+                </template>
+                <template slot="payingGroupMember" slot-scope="payingGroupMember">
+                  <div>
+                    {{groupMembers[payingGroupMember].name}}
+                  </div>
+                </template>
+                <template slot="sharingGroupMembers" slot-scope="sharingGroupMembers">
+                  <div v-if="sharingGroupMembers.length > 0">
+                    {{sharingGroupMembers.map(m => groupMembers[m].name).reduce((a, b) => a + ", " + b)}}
+                  </div>
+                  <div v-else><i>Everyone</i></div>
+                </template>
+                <template slot="date" slot-scope="date">
+                  <div>
+                    {{new Date(date) | dateFormat('DD.MM.YYYY')}}
+                  </div>
+                </template>
+                <template slot="actions" slot-scope="_id">
+                  <div style="white-space: nowrap">
+                    <a-button size="small" shape="circle" icon='edit' @click="editExpense(_id)"/>
+                    <a-button size="small" shape="circle" icon='delete' @click="deleteExpense(_id)"/>
+                  </div>
+                </template>
+              </a-table>
+              <label v-else style="font-family: Cantarell; font-size: 110%">
+                There are no expenses yet. Add an expense to get started!
+              </label>
             </div>
           </a-tab-pane>
-          <a-tab-pane tab="Settle Debts" key="transactions">
+          <a-tab-pane tab="Settle Debts" key="transactions" style="font-family: Cantarell">
             <h2>Transactions</h2>
-            These transactions settle all debts between the group members:
-            <a-list style="margin-top: 10px">
-              <a-list-item v-for="transaction of transactions" :key="transaction.source + transaction.target">
-                <div style="font-size: 110%">
-                  <label style="margin-right: 1ex;">#{{transactions.indexOf(transaction) + 1}}:</label>
-                  <b class="formatting-inline-label">{{groupMembers[transaction.source].name}}</b>
-                  pays <label class="formatting-inline-label currency-label">
-                  {{groupEvent.currencyPrefix}} {{transaction.amount | currency}}</label>
-                  to <b class="formatting-inline-label">{{groupMembers[transaction.target].name}}</b>
-                </div>
-              </a-list-item>
-            </a-list>
+            <div v-if="transactions.length > 0">
+              These transactions settle all debts between the group members:
+              <a-list style="margin-top: 10px">
+                <a-list-item v-for="transaction of transactions" :key="transaction.source + transaction.target">
+                  <div style="font-size: 110%">
+                    <label style="margin-right: 1ex;">#{{transactions.indexOf(transaction) + 1}}:</label>
+                    <b class="formatting-inline-label">{{groupMembers[transaction.source].name}}</b>
+                    pays <label class="formatting-inline-label currency-label" style="font-size: 115%">
+                    {{groupEvent.currencyPrefix}} {{transaction.amount | currency}}</label>
+                    to <b class="formatting-inline-label">{{groupMembers[transaction.target].name}}</b>
+                  </div>
+                </a-list-item>
+              </a-list>
+            </div>
+            <div v-else>
+              There are no debts to settle!
+            </div>
           </a-tab-pane>
         </a-tabs>
       </a-col>
@@ -115,6 +124,7 @@
     <a-modal ref="enterExpenseModal"
              v-model="enterExpenseModalVisible"
              :destroyOnClose="true"
+             title="Add Expense"
              @ok="expenseModalOkPressed"
     >
       <enter-expense-form ref="expenseForm"
@@ -126,9 +136,10 @@
       </enter-expense-form>
     </a-modal>
     <a-modal ref="editGroupMembersModal"
-                           v-model="editGroupMembersModalVisible"
-                           :destroyOnClose="true"
-                           @ok="groupMembersModalOkPressed"
+             v-model="editGroupMembersModalVisible"
+             :destroyOnClose="true"
+             title="Manage Group Members"
+             @ok="groupMembersModalOkPressed"
     >
     <enter-group-members-form ref="enterGroupMembersForm"
                               :inputGroupMembers="groupMembers"
@@ -173,13 +184,6 @@ export default {
       labelHighlighted: false,
       columns: [
         {
-          title: 'Paid By',
-          dataIndex: 'payingGroupMember',
-          // sorter: true,
-          width: '15%',
-          scopedSlots: { customRender: 'payingGroupMember' }
-        },
-        {
           title: 'Description',
           dataIndex: 'description',
           // sorter: true,
@@ -192,6 +196,13 @@ export default {
           sorter: (a, b) => a.amount - b.amount,
           width: '12%',
           scopedSlots: { customRender: 'amount' }
+        },
+        {
+          title: 'Paid By',
+          dataIndex: 'payingGroupMember',
+          // sorter: true,
+          width: '15%',
+          scopedSlots: { customRender: 'payingGroupMember' }
         },
         {
           title: 'Shared By',
@@ -419,6 +430,6 @@ export default {
   }
   .currency-label {
     word-spacing: -0.2ex;
-    margin-right: 0.5ex
+    margin-right: 0.1ex
   }
 </style>
