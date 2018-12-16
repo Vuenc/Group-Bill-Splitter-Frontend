@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div ref="outerDiv">
     <a-row class="somemorepadding"  style="padding: 30px 30px 5px 30px; margin: 0px 0px 30px 0px; background: #1890ff">
       <a-col :offset=1>
         <h1 class="leftaligned" style="white-space: nowrap">
@@ -12,10 +12,10 @@
         </h1>
       </a-col>
     </a-row>
-    <a-row>
-      <a-col :offset=1 :span=4>
-        <affix relative-element-selector="#top-table-div" style="width: 300px">
-          <div class="somemorepadding">
+    <div style="display: flex; justify-content: stretch; flex-wrap: nowrap">
+      <div style="min-width: 250px; max-width: 250px; margin-left: 4%">
+        <affix relative-element-selector="#top-table-div" style="width: 250px">
+          <div style="padding-top: 40px">
             <div style="white-space: nowrap; display: flex; justify-content: space-between">
               <h2>
                 Group Members:
@@ -32,8 +32,8 @@
             </a-list>
           </div>
         </affix>
-      </a-col>
-      <a-col :offset=2 :span=12>
+      </div>
+      <div style="max-width: 960px; width: 100%; margin-left: 10%; margin-right: 5%">
         <a-tabs @change="tabChanged" style="font-family: Cantarell;">
           <a-tab-pane tab="Manage Expenses" key="expenses">
             <div id="top-table-div">
@@ -119,8 +119,8 @@
             </div>
           </a-tab-pane>
         </a-tabs>
-      </a-col>
-    </a-row>
+      </div>
+    </div>
     <a-modal ref="enterExpenseModal"
              v-model="enterExpenseModalVisible"
              :destroyOnClose="true"
