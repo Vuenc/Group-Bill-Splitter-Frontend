@@ -23,7 +23,7 @@
         You and your friends went on a holiday together?
         You cooked something fancy as a group?
         You had a big party and had to buy a lot of drinks?
-        Either way, you now have a big pile of open bills and it's going to be a big chaos to find out who was to pay
+        Either way, you now have a big pile of open bills and it's going to be quite a chaos to find out who has to pay
         how much money to who in order to settle all expenses.
         <br><br>
         With <b>Group Bill Splitter</b>, splitting the bills becomes much easier!

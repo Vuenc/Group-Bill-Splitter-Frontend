@@ -26,6 +26,8 @@
                         shape="circle"
                         icon='delete'
                         tabindex="-1"
+                        :disabled="groupMembers.length <= 1"
+                        :ghost="groupMembers.length <= 1"
                         style="margin-top: 3px"
                         @click="deleteMember(v.$model)"
                         :loading="v.$model.confirmDeleteLoading"

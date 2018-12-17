@@ -29,11 +29,10 @@
           </a-form-item>
           <a-form-item label="Group Members:">
             <enter-group-members-form ref="enterGroupMembersForm"
-                                      maxListHeight="350px"
-                                      style="margin-top: -25px"
+                                      style="margin-top: -5px"
                                       :inputGroupMembersExist="false"
                                       :inputGroupMembers="[{name: '', email: ''}]"
-            />
+            /> <!-- maxListHeight="320px" -->
           </a-form-item>
           <a-form-item>
             <a-row>

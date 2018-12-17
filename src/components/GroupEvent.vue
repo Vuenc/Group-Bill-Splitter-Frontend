@@ -1,7 +1,7 @@
 <template>
   <div ref="outerDiv">
-    <a-row class="somemorepadding"  style="padding: 30px 30px 5px 30px; margin: 0px 0px 30px 0px; background: #1890ff">
-      <a-col :offset=1>
+    <a-row class="somemorepadding"  style="padding: 30px 30px 5px 0px; margin-bottom: 30px; background: #1890ff">
+      <a-col style="margin-left: 4%">
         <h1 class="leftaligned" style="white-space: nowrap">
           <label style="color: #eeeeee; font-family: 'Cantarell'; font-size: 120%">
             Event:
@@ -144,10 +144,9 @@
     <enter-group-members-form ref="enterGroupMembersForm"
                               :inputGroupMembers="groupMembers"
                               :groupEventId="groupEvent._id"
-                              maxListHeight="500px"
                               :inputGroupMembersExist="true"
                               @submit="groupMembersModalOkPressed"
-    >
+    > <!-- maxListHeight="500px" -->
     </enter-group-members-form>
   </a-modal>
   </div>
