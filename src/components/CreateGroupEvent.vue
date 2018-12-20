@@ -10,41 +10,43 @@
       </a-col>
     </a-row>
     <a-row>
-      <a-col :offset="8" :span="7">
-        <a-form>
-          <a-form-item label="Name">
-            <a-input v-model="name"
-                     placeholder="For which event do you want to split expenses?"
-                     :class="{'input-error': $v.name.$error}"/>
-          </a-form-item>
-          <a-form-item label="Currency">
-            <a-select v-model="currency.currency"
-                      placeholder="What currency did you pay in?"
-                      :class="{'input-error': $v.currency.$error}"
-            >
-              <a-select-option value="€">Euro (€)</a-select-option>
-              <a-select-option value="$">USD ($)</a-select-option>
-              <a-select-option value="£">GPB (£)</a-select-option>
-            </a-select>
-          </a-form-item>
-          <a-form-item label="Group Members:">
-            <enter-group-members-form ref="enterGroupMembersForm"
-                                      style="margin-top: -5px"
-                                      :inputGroupMembersExist="false"
-                                      :inputGroupMembers="[{name: '', email: ''}]"
-            /> <!-- maxListHeight="320px" -->
-          </a-form-item>
-          <a-form-item>
-            <a-row>
-              <a-col :span=24 :style="{textAlign: 'right'}">
-                <a-button type="primary"
-                          @click="createEvent"
-                          :loading="postEventLoading">Create Event!</a-button>
-              </a-col>
-            </a-row>
-          </a-form-item>
-        </a-form>
-      </a-col>
+      <div style="display: flex; width: 100%">
+        <div style="max-width: 550px; margin-left: auto; margin-right: auto">
+          <a-form>
+            <a-form-item label="Name">
+              <a-input v-model="name"
+                       placeholder="For which event do you want to split expenses?"
+                       :class="{'input-error': $v.name.$error}"/>
+            </a-form-item>
+            <a-form-item label="Currency">
+              <a-select v-model="currency.currency"
+                        placeholder="What currency did you pay in?"
+                        :class="{'input-error': $v.currency.$error}"
+              >
+                <a-select-option value="€">Euro (€)</a-select-option>
+                <a-select-option value="$">USD ($)</a-select-option>
+                <a-select-option value="£">GPB (£)</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="Group Members:">
+              <enter-group-members-form ref="enterGroupMembersForm"
+                                        style="margin-top: -5px"
+                                        :inputGroupMembersExist="false"
+                                        :inputGroupMembers="[{name: '', email: ''}]"
+              /> <!-- maxListHeight="320px" -->
+            </a-form-item>
+            <a-form-item>
+              <a-row>
+                <a-col :span=24 :style="{textAlign: 'right'}">
+                  <a-button type="primary"
+                            @click="createEvent"
+                            :loading="postEventLoading">Create Event!</a-button>
+                </a-col>
+              </a-row>
+            </a-form-item>
+          </a-form>
+        </div>
+      </div>
     </a-row>
   </div>
 </template>
