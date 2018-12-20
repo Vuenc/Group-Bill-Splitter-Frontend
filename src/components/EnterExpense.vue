@@ -25,8 +25,9 @@
                       v-model="payingGroupMember"
                       :class="{'input-error': $v.payingGroupMember.$error}"
                       showSearch
+                      :filterOption="matchesGroupMember"
             >
-              <a-select-option v-for="member of groupMembers"
+              <a-select-option v-for="member in groupMembers"
                                :key="member._id"
                                :value="member._id"
               >
@@ -47,8 +48,9 @@
                   @focus="sharingMembersEnterType = 'select'"
                   :placeholder="sharingMembersEnterType === 'all' ? 'All users share the expense' : 'Select users...'"
                   :class="{'input-error': $v.sharingGroupMembers.$error}"
+                  :filterOption="matchesGroupMember"
         >
-          <a-select-option v-for="member of groupMembers"
+          <a-select-option v-for="member in groupMembers"
                            :key="member._id"
                            :value="member._id"
                            :class="{'input-error': $v.payingGroupMember.$error}"
@@ -103,7 +105,7 @@ export default {
         amount: this.amount,
         payingGroupMember: this.payingGroupMember,
         sharingGroupMembers: this.sharingGroupMembers,
-        date: this.date
+        date: this.date.format('YYYY-MM-DD')
       }
       if (!this.inputExpense) {
         confirmationCallback(expense, 'added')
@@ -120,6 +122,9 @@ export default {
       if (numberAmount) {
         this.amount = numberAmount.toLocaleString('en', {minimumFractionDigits: 2, useGrouping: false})
       }
+    },
+    matchesGroupMember (searchString, element) {
+      return this.groupMembers[element.data.key].name.includes(searchString)
     }
   },
   created () {

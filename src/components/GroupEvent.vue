@@ -61,7 +61,7 @@
                           :enabled="!groupMembersLoading"
                           style="margin-right: auto"
                 >Add Expense</a-button>
-                <div style="max-width: 50%; width: 300px; display: flex; flex-direction: column; justify-content: center; margin-right: 20px">
+                <div style="max-width: 50%; width: 300px; display: flex; flex-direction: column; justify-content: center; margin-left: 20px; margin-right: 20px">
                   <a-input placeholder="Search for expenses..."
                            v-model="searchString"
                            :disabled="expenses.length === 0 && !searchString"
