@@ -92,9 +92,11 @@ export default {
     this.$refs.firstInput.focus()
   },
   methods: {
+    // Focus the 'sharing members' component on press of the radio button
     focusSharedMemberSelection () {
       this.$refs.selectSharingGroupMembersElement.focus()
     },
+    // Validate the data and if its OK, confirm back to the parent element
     okPressed (confirmationCallback) {
       this.$v.$touch()
       if (this.$v.$invalid) {
@@ -114,6 +116,7 @@ export default {
         confirmationCallback(expense, 'edited')
       }
     },
+    // Format the amount input box
     formatAmount () {
       if (this.amount) {
         this.$v.amount.$touch()
@@ -123,6 +126,7 @@ export default {
         this.amount = numberAmount.toLocaleString('en', {minimumFractionDigits: 2, useGrouping: false})
       }
     },
+    // Implements search function on select element
     matchesGroupMember (searchString, element) {
       return this.groupMembers[element.data.key].name.includes(searchString)
     }

@@ -314,6 +314,7 @@ export default {
     'enter-group-event-form': EnterGroupEvent
   },
   methods: {
+    // Fetch methods are used to fetch data from the server and update the model
     fetchData () {
       this.expensesLoading = this.groupMembersLoading = true
       let params = this.$route.params
@@ -393,6 +394,7 @@ export default {
       this.transactions = transactions
       this.transactionsLoading = false
     },
+    // Methods for editing expenses and handling the expense form overlay ('Modal')
     addExpense () {
       this.currentDialogExpense = null
       this.enterExpenseModalVisible = true
@@ -455,6 +457,7 @@ export default {
           })
       }
     },
+    // Methods for handling the edit group members overlay ('Modal')
     editGroupMembers () {
       this.enterGroupMembersLoading = false
       this.editGroupMembersModalVisible = true
@@ -471,6 +474,7 @@ export default {
       this.enterGroupEventLoading = false
       this.editGroupEventModalVisible = true
     },
+    // Methods for handling the edit group event overlay ('Modal')
     groupEventModalOkPressed () {
       this.$refs.enterGroupEventForm.okPressed(this.groupEventModalOkFinished)
     },
@@ -489,12 +493,14 @@ export default {
           this.enterGroupEventLoading = false
         })
     },
+    // Load transactions when the tab is switched there
     tabChanged (key) {
       if (key === 'transactions') {
         this.transactions = []
         this.fetchTransactions()
       }
     },
+    // Helper method used when inserting/editing expenses while filter is active
     matchesSearch (expense, searchString, dateRange) {
       if (dateRange.length > 0 && (dateRange[0] > expense.date || dateRange[1] < expense.date)) {
         return false
@@ -514,6 +520,7 @@ export default {
       this.$copyText(this.groupEventURL)
       this.$message.success('Copied group event URL to clipboard!')
     },
+    // If a wrong URL is supplied, show error and lead user back to landing page
     showLoadingError () {
       this.$error({
         title: 'Group Event data could not be loaded!',
@@ -550,34 +557,6 @@ export default {
 </script>
 
 <style>
-  #components-layout-demo-basic {
-    text-align: center;
-  }
-  #components-layout-demo-basic .ant-layout-header,
-  #components-layout-demo-basic .xant-layout-footer {
-    background: #ffffff;
-    color: #fff;
-  }
-  #components-layout-demo-basic .xant-layout-footer {
-    line-height: 1.5;
-  }
-  #components-layout-demo-basic .ant-layout-sider {
-    background: #3ba0e9;
-    color: #fff;
-    line-height: 120px;
-  }
-  #components-layout-demo-basic .xant-layout-content {
-    background: rgba(16, 142, 233, 1);
-    color: #fff;
-    min-height: 120px;
-    line-height: 120px;
-  }
-  #components-layout-demo-basic > .xant-layout {
-    margin-bottom: 48px;
-  }
-  #components-layout-demo-basic > .xant-layout:last-child {
-    margin: 0;
-  }
   .leftaligned {
     text-align: left;
   }

@@ -40,6 +40,7 @@ export default {
     this.groupEvent = {name: this.name, currencyPrefix: this.currency, _id: this.groupEventId}
   },
   methods: {
+    // Validate data and report back to the parent component
     okPressed (confirmationCallback) {
       this.$v.$touch()
       if (this.$v.$invalid) {

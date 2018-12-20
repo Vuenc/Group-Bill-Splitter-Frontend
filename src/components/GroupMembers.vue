@@ -92,6 +92,7 @@ export default {
     }
   },
   methods: {
+    // Clone member so that parent component is not immediately affected by changes (useful when cancelling)
     cloneMember (member) {
       return {
         name: member.name,
@@ -111,6 +112,7 @@ export default {
       })
       this.memberAdded = true
     },
+    // Try to delete a member (API method can fail if there are dependencies of the member)
     deleteMember (member) {
       if (member.newlyAdded) {
         this.groupMembers.splice(this.groupMembers.indexOf(member), 1)
@@ -128,6 +130,7 @@ export default {
           })
       }
     },
+    // Add new members and edit existing ones if changes occurred
     applyChanges () {
       let promises = []
       for (let member of this.groupMembers) {
@@ -144,6 +147,7 @@ export default {
       }
       return promises
     },
+    // Validate data, and report back to parent component
     okPressed (confirmationCallback, groupEventId) {
       this.$v.$touch()
       if (this.$v.$invalid) {
@@ -159,6 +163,7 @@ export default {
           confirmationCallback()
         })
     },
+    // Focus on the new input element once a new member is added
     listResized () {
       if (this.memberAdded) {
         let newInput = this.$refs['memberinput-' + (this.groupMembers.length - 1)][0].$el

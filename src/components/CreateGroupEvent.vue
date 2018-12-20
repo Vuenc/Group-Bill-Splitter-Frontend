@@ -73,6 +73,7 @@ export default {
   },
   components: {'enter-group-members-form': GroupMembers},
   methods: {
+    // Create event and let members component push members to it
     createEvent () {
       this.$v.$touch()
       this.$refs.enterGroupMembersForm.$v.$touch()
@@ -122,12 +123,6 @@ export default {
 </script>
 
 <style scoped>
-  /* .content {
-    position: absolute;
-    top: 40%;
-    left: 50%;
-    transform: translateX(-50%) translateY(-50%);
-  } */
   .ant-table-placeholder {
     padding: 0px 0px;
   }
