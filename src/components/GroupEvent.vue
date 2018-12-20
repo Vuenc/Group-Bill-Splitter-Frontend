@@ -1,7 +1,7 @@
 <template>
   <div ref="outerDiv">
     <a-row class="somemorepadding"  style="padding: 30px 30px 5px 0px; margin-bottom: 30px; background: #1890ff">
-      <a-col style="margin-left: 4%">
+      <div style="margin-left: 4%; display: flex">
         <h1 class="leftaligned" style="white-space: nowrap">
           <label style="color: #eeeeee; font-family: 'Cantarell'; font-size: 120%">
             Event:
@@ -10,7 +10,15 @@
             {{groupEvent.name}}
           </label>
         </h1>
-      </a-col>
+        <div style="display: flex; flex-direction: column; justify-content: center; margin-left: 30px; margin-bottom: 15px;">
+          <a-button ref='editGroupEventButton'
+                    size="small" shape="circle" icon='edit' type="ghost"
+                    @click="editGroupEvent"
+                    v-if="groupEvent.name"
+                    style="margin-top: 5px"
+          />
+        </div>
+      </div>
     </a-row>
     <div style="display: flex; justify-content: stretch; flex-wrap: nowrap">
       <div style="min-width: 250px; max-width: 250px; margin-left: 4%">
@@ -180,15 +188,30 @@
              @ok="groupMembersModalOkPressed"
              :confirm-loading="enterGroupMembersLoading"
     >
-    <enter-group-members-form ref="enterGroupMembersForm"
-                              :inputGroupMembers="groupMembers"
+      <enter-group-members-form ref="enterGroupMembersForm"
+                                :inputGroupMembers="groupMembers"
+                                :groupEventId="groupEvent._id"
+                                :inputGroupMembersExist="true"
+                                @submit="groupMembersModalOkPressed"
+                                @loading="enterGroupMembersLoading=true"
+      > <!-- maxListHeight="500px" -->
+      </enter-group-members-form>
+    </a-modal>
+    <a-modal ref="editGroupEventModal"
+             v-model="editGroupEventModalVisible"
+             :destroyOnClose="true"
+             title="Edit Group Event"
+             @ok="groupEventModalOkPressed"
+             :confirm-loading="enterGroupEventLoading"
+    >
+      <enter-group-event-form ref="enterGroupEventForm"
+                              :name="groupEvent.name"
+                              :currency="groupEvent.currencyPrefix"
                               :groupEventId="groupEvent._id"
-                              :inputGroupMembersExist="true"
-                              @submit="groupMembersModalOkPressed"
-                              @loading="enterGroupMembersLoading=true"
-    > <!-- maxListHeight="500px" -->
-    </enter-group-members-form>
-  </a-modal>
+                              @submit="groupEventModalOkPressed"
+      > <!-- maxListHeight="500px" -->
+      </enter-group-event-form>
+    </a-modal>
   </div>
 </template>
 
@@ -203,6 +226,7 @@ import VueClipboard from 'vue-clipboard2'
 
 import EnterExpense from '@/components/EnterExpense'
 import GroupMembers from '@/components/GroupMembers'
+import EnterGroupEvent from '@/components/EnterGroupEvent'
 import GroupBillSplitterService from '@/services/groupbillsplitterservice'
 
 let gravatar = require('gravatar')
@@ -218,6 +242,7 @@ export default {
     return {
       enterExpenseModalVisible: false,
       editGroupMembersModalVisible: false,
+      editGroupEventModalVisible: false,
       groupEvent: {},
       groupMembers: {},
       expenses: [],
@@ -228,6 +253,7 @@ export default {
       transactionsLoading: false,
       enterExpenseLoading: false,
       enterGroupMembersLoading: false,
+      enterGroupEventLoading: false,
       searchString: '',
       dateRange: [],
       columns: [
@@ -284,7 +310,8 @@ export default {
   },
   components: {
     'enter-expense-form': EnterExpense,
-    'enter-group-members-form': GroupMembers
+    'enter-group-members-form': GroupMembers,
+    'enter-group-event-form': EnterGroupEvent
   },
   methods: {
     fetchData () {
@@ -435,6 +462,29 @@ export default {
     groupMembersModalOkFinished () {
       this.editGroupMembersModalVisible = false
       this.fetchGroupMembers()
+    },
+    editGroupEvent () {
+      this.$refs.editGroupEventButton.$el.blur()
+      this.enterGroupEventLoading = false
+      this.editGroupEventModalVisible = true
+    },
+    groupEventModalOkPressed () {
+      this.$refs.enterGroupEventForm.okPressed(this.groupEventModalOkFinished)
+    },
+    groupEventModalOkFinished (groupEvent) {
+      this.enterGroupEventLoading = true
+      GroupBillSplitterService.putGroupEvent(groupEvent._id, groupEvent)
+        .then(() => {
+          this.groupEvent = groupEvent
+          this.editGroupEventModalVisible = false
+        })
+        .catch(err => {
+          this.$message.destroy()
+          this.$message.error('Could not put group event on server: ' + err)
+        })
+        .finally(() => {
+          this.enterGroupEventLoading = false
+        })
     },
     tabChanged (key) {
       if (key === 'transactions') {
