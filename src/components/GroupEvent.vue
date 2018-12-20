@@ -113,7 +113,10 @@
                 <template slot="actions" slot-scope="_id">
                   <div style="white-space: nowrap">
                     <a-button size="small" shape="circle" icon='edit' @click="editExpense(_id)"/>
-                    <a-button size="small" shape="circle" icon='delete' @click="deleteExpense(_id)"/>
+                    <a-popconfirm title="Delete this expense?" @confirm="deleteExpense(_id)">
+                      <a-icon slot="icon" type="question-circle-o" style="color: red" />
+                      <a-button size="small" shape="circle" icon='delete'/>
+                    </a-popconfirm>
                   </div>
                 </template>
               </a-table>
@@ -362,7 +365,7 @@ export default {
     deleteExpense (id) {
       let expenseIndex = this.expenses.findIndex(e => e._id === id)
       this.expenses.splice(expenseIndex, 1)
-      GroupBillSplitterService.deleteExpense(this.$route.params.id, id)
+      return GroupBillSplitterService.deleteExpense(this.$route.params.id, id)
         .then()
         .catch(err => {
           console.log('Deleting expense failed: ' + err)
