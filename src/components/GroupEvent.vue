@@ -20,9 +20,12 @@
               <h2>
                 Group Members:
               </h2>
-              <a-button size="small" shape="circle" icon='edit' @click="editGroupMembers" style="margin-top: 5px"/>
+              <a-button size="small" shape="circle" icon='edit'
+                        @click="editGroupMembers"
+                        :enabled="!groupMembersLoading"
+                        style="margin-top: 5px"/>
             </div>
-            <a-list>
+            <a-list :loading="groupMembersLoading">
               <a-list-item v-for="member of groupMembers" :key="member._id">
                 <a-tooltip placement="right" title="You can customize this using Gravatar!">
                   <a-avatar shape="square" icon="user" :src='member.gravatar' style="margin-right:24px" />
@@ -31,6 +34,7 @@
                   {{member.name}}
                 </label>
               </a-list-item>
+              <a-list-item v-if="groupMembersLoading" style="margin-top: 30px"></a-list-item>
             </a-list>
           </div>
         </affix>
@@ -41,8 +45,10 @@
             <div id="top-table-div">
               <div @change="state => buttonAffixActivated = state">
                 <div style="margin: 0px 0px 10px 0px; min-height: 60px; padding: 10px 0px 10px 0px">
-                  <a-button :size="buttonAffixActivated ? 'large' : 'large'" type="primary" style="margin: 0px 10px 0px 0px"
-                            @click="addExpense">Add Expense</a-button>
+                  <a-button size="large" type="primary" style="margin: 0px 10px 0px 0px"
+                            @click="addExpense"
+                            :enabled="!groupMembersLoading"
+                  >Add Expense</a-button>
                 </div>
               </div>
               <a-table id="expenses-table"
@@ -50,7 +56,8 @@
                        :rowKey="record => record._id"
                        :dataSource="expenses"
                        :pagination="expenses.length > 50 ? {pageSize: 50} : false"
-                       v-if="expenses.length > 0"
+                       v-if="expenses.length > 0 || expensesLoading"
+                       :loading="expensesLoading"
               >
                 <template slot="amount" slot-scope="amount">
                     <div class="rightaligned currency-label" style="white-space: nowrap">
@@ -102,9 +109,10 @@
           </a-tab-pane>
           <a-tab-pane tab="Settle Debts" key="transactions" style="font-family: Cantarell">
             <h2>Transactions</h2>
-            <div v-if="transactions.length > 0">
+            <div v-if="transactions.length > 0 || transactionsLoading">
               These transactions settle all debts between the group members:
-              <a-list style="margin-top: 10px">
+              <a-list :loading="transactionsLoading"
+                      style="margin-top: 10px">
                 <a-list-item v-for="transaction of transactions" :key="transaction.source + transaction.target">
                   <div style="font-size: 110%">
                     <label style="margin-right: 1ex;">#{{transactions.indexOf(transaction) + 1}}:</label>
@@ -114,6 +122,7 @@
                     to <b class="formatting-inline-label">{{groupMembers[transaction.target].name}}</b>
                   </div>
                 </a-list-item>
+                <a-list-item v-if="transactionsLoading" style="margin-top: 30px"></a-list-item>
               </a-list>
             </div>
             <div v-else>
@@ -128,6 +137,7 @@
              :destroyOnClose="true"
              title="Add Expense"
              @ok="expenseModalOkPressed"
+             :confirm-loading="enterExpenseLoading"
     >
       <enter-expense-form ref="expenseForm"
                         :groupMembers="groupMembers"
@@ -142,12 +152,14 @@
              :destroyOnClose="true"
              title="Manage Group Members"
              @ok="groupMembersModalOkPressed"
+             :confirm-loading="enterGroupMembersLoading"
     >
     <enter-group-members-form ref="enterGroupMembersForm"
                               :inputGroupMembers="groupMembers"
                               :groupEventId="groupEvent._id"
                               :inputGroupMembersExist="true"
                               @submit="groupMembersModalOkPressed"
+                              @loading="enterGroupMembersLoading=true"
     > <!-- maxListHeight="500px" -->
     </enter-group-members-form>
   </a-modal>
@@ -185,6 +197,11 @@ export default {
       buttonAffixActivated: false,
       currentDialogExpense: null,
       labelHighlighted: false,
+      expensesLoading: false,
+      groupMembersLoading: false,
+      transactionsLoading: false,
+      enterExpenseLoading: false,
+      enterGroupMembersLoading: false,
       columns: [
         {
           title: 'Description',
@@ -243,6 +260,7 @@ export default {
   },
   methods: {
     fetchData () {
+      this.expensesLoading = this.groupMembersLoading = true
       let params = this.$route.params
       let groupEventPromise = GroupBillSplitterService.fetchGroupEvent(params.id)
       let groupMembersPromise = GroupBillSplitterService.fetchMembers(params.id)
@@ -257,6 +275,7 @@ export default {
         })
     },
     fetchGroupMembers () {
+      this.groupMembersLoading = true
       GroupBillSplitterService.fetchMembers(this.$route.params.id)
         .then(groupMembers => this.setGroupMembers(groupMembers.data))
         .catch(err => {
@@ -265,6 +284,7 @@ export default {
         })
     },
     fetchTransactions () {
+      this.transactionsLoading = true
       GroupBillSplitterService.fetchTransactions(this.$route.params.id)
         .then(transactions => this.setTransactions(transactions.data))
         .catch(err => {
@@ -281,6 +301,7 @@ export default {
         e.amount = parseFloat(e.amount.$numberDecimal)
       }
       this.expenses = expenses
+      this.expensesLoading = this.groupMembersLoading = this.transactionsLoading = false
     },
     setGroupMembers (groupMembers) {
       this.groupMembers = {}
@@ -291,12 +312,14 @@ export default {
         let id = member._id.toString()
         this.groupMembers[id] = member
       }
+      this.groupMembersLoading = false
     },
     setTransactions (transactions) {
       for (let t of transactions) {
         t.amount = parseFloat(t.amount)
       }
       this.transactions = transactions
+      this.transactionsLoading = false
     },
     addExpense () {
       this.currentDialogExpense = null
@@ -320,7 +343,7 @@ export default {
       this.$refs.expenseForm.okPressed(this.expenseModalOkFinished)
     },
     expenseModalOkFinished (expense, formType) {
-      this.enterExpenseModalVisible = false
+      this.enterExpenseLoading = true
       if (formType === 'added') {
         // Add new expense to list and post it to server
         expense._id = ''
@@ -334,6 +357,10 @@ export default {
             console.log('Adding expense failed: ' + err)
             this.fetchData()
           })
+          .finally(() => {
+            this.enterExpenseLoading = false
+            this.enterExpenseModalVisible = false
+          })
       } else if (formType === 'edited') {
         // Replace edited expense in list and put it on server
         let expenseIndex = this.expenses.findIndex(e => e._id === expense._id)
@@ -344,9 +371,14 @@ export default {
             console.log('Editing expense failed: ' + err)
             this.fetchData()
           })
+          .finally(() => {
+            this.enterExpenseLoading = false
+            this.enterExpenseModalVisible = false
+          })
       }
     },
     editGroupMembers () {
+      this.enterGroupMembersLoading = false
       this.editGroupMembersModalVisible = true
     },
     groupMembersModalOkPressed () {

@@ -152,6 +152,7 @@ export default {
       if (groupEventId) {
         this.groupEventId = groupEventId
       }
+      this.$emit('loading')
       let promises = this.applyChanges()
       Promise.all(promises)
         .then(() => {
@@ -167,7 +168,7 @@ export default {
       }
     }
   },
-  props: ['inputGroupMembers', 'inputGroupMembersExist', 'groupEventId', 'maxListHeight'],
+  props: ['inputGroupMembers', 'inputGroupMembersExist', 'groupEventId', 'maxListHeight', 'loading'],
   components: {'resize-observer': ResizeObserver},
   created () {
     this.$message.config({maxCount: 1})
