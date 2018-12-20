@@ -118,7 +118,7 @@ export default {
       }
       const numberAmount = Number(this.amount)
       if (numberAmount) {
-        this.amount = numberAmount.toLocaleString(undefined, {minimumFractionDigits: 2, useGrouping: false})
+        this.amount = numberAmount.toLocaleString('en', {minimumFractionDigits: 2, useGrouping: false})
       }
     }
   },
