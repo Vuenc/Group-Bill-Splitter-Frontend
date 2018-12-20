@@ -139,6 +139,22 @@
               There are no debts to settle!
             </div>
           </a-tab-pane>
+          <a-tab-pane tab="Share Event" key="share" style="font-family: Cantarell">
+            <h2>
+              Share this Group Event!
+            </h2>
+            You can share this group event with your friends by sending them this URL:
+            <div style="display: flex; margin-top: 20px">
+              <div style="display: flex; flex-direction: column; justify-content: center;">
+                <a-icon type="link" style="margin-right: 15px; font-size: 24px"></a-icon>
+              </div>
+              <a-tooltip placement="right" title="Click to copy this link!">
+                <label class="link-label"
+                       @click="copyUrl"
+                >{{groupEventURL}}</label>
+              </a-tooltip>
+            </div>
+          </a-tab-pane>
         </a-tabs>
       </div>
     </div>
@@ -183,6 +199,7 @@ import Antd from 'ant-design-vue'
 import VueFilterDateFormat from 'vue-filter-date-format'
 import Affix from 'vue-affix'
 import moment from 'moment'
+import VueClipboard from 'vue-clipboard2'
 
 import EnterExpense from '@/components/EnterExpense'
 import GroupMembers from '@/components/GroupMembers'
@@ -193,6 +210,7 @@ let gravatar = require('gravatar')
 Vue.use(Antd)
 Vue.use(VueFilterDateFormat)
 Vue.use(Affix)
+Vue.use(VueClipboard)
 
 export default {
   name: 'GroupEvent',
@@ -438,6 +456,10 @@ export default {
         }
       }
       return false
+    },
+    copyUrl () {
+      this.$copyText(this.groupEventURL)
+      this.$message.success('Copied group event URL to clipboard!')
     }
   },
   created () {
@@ -457,6 +479,11 @@ export default {
     },
     dateRange () {
       this.fetchExpenses()
+    }
+  },
+  computed: {
+    groupEventURL () {
+      return `https://groupbillsplitter.herokuapp.com/#/groupEvents/${this.groupEvent._id}`
     }
   }
 }
@@ -522,5 +549,14 @@ export default {
   .currency-label {
     word-spacing: -0.2ex;
     margin-right: 0.1ex
+  }
+  .link-label {
+    padding: 5px;
+    border: #cccccc solid 1px
+  }
+  .link-label:hover {
+    padding: 5px;
+    border: #bae7ff solid 1px;
+    color: #1890ff
   }
 </style>
