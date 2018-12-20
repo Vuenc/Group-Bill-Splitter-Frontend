@@ -24,7 +24,9 @@
             </div>
             <a-list>
               <a-list-item v-for="member of groupMembers" :key="member._id">
-                <a-avatar shape="square" icon="user" :src='member.avatar' style="margin-right:24px" />
+                <a-tooltip placement="right" title="You can customize this using Gravatar!">
+                  <a-avatar shape="square" icon="user" :src='member.gravatar' style="margin-right:24px" />
+                </a-tooltip>
                 <label style="align-self: center">
                   {{member.name}}
                 </label>
@@ -164,6 +166,8 @@ import EnterExpense from '@/components/EnterExpense'
 import GroupMembers from '@/components/GroupMembers'
 import GroupBillSplitterService from '@/services/groupbillsplitterservice'
 
+let gravatar = require('gravatar')
+
 Vue.use(Antd)
 Vue.use(VueFilterDateFormat)
 Vue.use(Affix)
@@ -281,6 +285,9 @@ export default {
     setGroupMembers (groupMembers) {
       this.groupMembers = {}
       for (let member of groupMembers) {
+        if (member.email) {
+          member.gravatar = gravatar.url(member.email, {d: 404})
+        }
         let id = member._id.toString()
         this.groupMembers[id] = member
       }
