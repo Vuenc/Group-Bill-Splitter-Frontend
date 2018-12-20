@@ -43,12 +43,20 @@
         <a-tabs @change="tabChanged" style="font-family: Cantarell;">
           <a-tab-pane tab="Manage Expenses" key="expenses">
             <div id="top-table-div">
-              <div @change="state => buttonAffixActivated = state">
-                <div style="margin: 0px 0px 10px 0px; min-height: 60px; padding: 10px 0px 10px 0px">
-                  <a-button size="large" type="primary" style="margin: 0px 10px 0px 0px"
-                            @click="addExpense"
-                            :enabled="!groupMembersLoading"
-                  >Add Expense</a-button>
+              <div style="margin: 0px 0px 10px 0px;
+                          min-height: 60px;
+                          padding: 10px 0px 10px 0px;
+                          display: flex;"
+              >
+                <a-button size="large" type="primary"
+                          @click="addExpense"
+                          :enabled="!groupMembersLoading"
+                          style="margin-right: auto"
+                >Add Expense</a-button>
+                <div style="max-width: 50%; width: 300px; display: flex; flex-direction: column; justify-content: center; margin-right: 20px">
+                  <a-input placeholder="Search for expenses..."
+                           v-model="searchString"
+                  ></a-input>
                 </div>
               </div>
               <a-table id="expenses-table"
@@ -56,7 +64,7 @@
                        :rowKey="record => record._id"
                        :dataSource="expenses"
                        :pagination="expenses.length > 50 ? {pageSize: 50} : false"
-                       v-if="expenses.length > 0 || expensesLoading"
+                       v-if="fetchedExpenses.length > 0 || expensesLoading"
                        :loading="expensesLoading"
               >
                 <template slot="amount" slot-scope="amount">
@@ -193,8 +201,8 @@ export default {
       groupEvent: {},
       groupMembers: {},
       expenses: [],
+      fetchedExpenses: [],
       transactions: [],
-      buttonAffixActivated: false,
       currentDialogExpense: null,
       labelHighlighted: false,
       expensesLoading: false,
@@ -202,6 +210,7 @@ export default {
       transactionsLoading: false,
       enterExpenseLoading: false,
       enterGroupMembersLoading: false,
+      searchString: '',
       columns: [
         {
           title: 'Description',
@@ -301,6 +310,8 @@ export default {
         e.amount = parseFloat(e.amount.$numberDecimal)
       }
       this.expenses = expenses
+      this.fetchedExpenses = expenses
+      this.searchString = ''
       this.expensesLoading = this.groupMembersLoading = this.transactionsLoading = false
     },
     setGroupMembers (groupMembers) {
@@ -393,6 +404,19 @@ export default {
         this.transactions = []
         this.fetchTransactions()
       }
+    },
+    matchesExpense (expense, searchString) {
+      console.log(expense.payingGroupMember)
+      if (expense.description.includes(searchString) ||
+        this.groupMembers[expense.payingGroupMember].name.includes(searchString)) {
+        return true
+      }
+      for (let member of expense.sharingGroupMembers) {
+        if (this.groupMembers[member].name.includes(searchString)) {
+          return true
+        }
+      }
+      return false
     }
   },
   created () {
@@ -406,6 +430,13 @@ export default {
     },
     groupEvent () {
       document.title = `${this.groupEvent.name} | Group Bill Splitter`
+    },
+    searchString () {
+      if (this.searchString) {
+        this.expenses = this.fetchedExpenses.filter(expense => this.matchesExpense(expense, this.searchString))
+      } else {
+        this.expenses = this.fetchedExpenses
+      }
     }
   }
 }
