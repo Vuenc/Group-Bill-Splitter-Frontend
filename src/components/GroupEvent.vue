@@ -327,6 +327,7 @@ export default {
         .catch(err => {
           this.setData({}, [], [])
           console.log(err)
+          this.showLoadingError()
         })
     },
     fetchExpenses () {
@@ -336,6 +337,7 @@ export default {
         .catch(err => {
           this.setData({}, [], [])
           console.log(err)
+          this.showLoadingError()
         })
     },
     fetchGroupMembers () {
@@ -345,6 +347,7 @@ export default {
         .catch(err => {
           this.setData({}, [], [])
           console.log(err)
+          this.showLoadingError()
         })
     },
     fetchTransactions () {
@@ -510,6 +513,13 @@ export default {
     copyUrl () {
       this.$copyText(this.groupEventURL)
       this.$message.success('Copied group event URL to clipboard!')
+    },
+    showLoadingError () {
+      this.$error({
+        title: 'Group Event data could not be loaded!',
+        content: 'Click OK to go back to the landing page.',
+        onOk: () => this.$router.push({name: 'LandingPage'})
+      })
     }
   },
   created () {
