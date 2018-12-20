@@ -7,7 +7,7 @@
           <b>Group Bill Splitter</b>
         </label>
       </a-menu-item>
-      <a-menu-item>
+      <a-menu-item @click="navigateAbout">
         <a-icon type="info"/>
         <label style="color: #ffffff; font-family: 'Cantarell'; cursor: pointer">
           About
@@ -24,6 +24,9 @@ export default {
   methods: {
     navigateHome () {
       this.$router.push({name: 'LandingPage'})
+    },
+    navigateAbout () {
+      this.$router.push({name: 'About'})
     }
   }
 }
