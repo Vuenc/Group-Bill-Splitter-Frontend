@@ -56,7 +56,14 @@
                 <div style="max-width: 50%; width: 300px; display: flex; flex-direction: column; justify-content: center; margin-right: 20px">
                   <a-input placeholder="Search for expenses..."
                            v-model="searchString"
+                           :disabled="expenses.length === 0 && !searchString"
                   ></a-input>
+                </div>
+                <div style="display: flex; width: 250px; flex-direction: column; justify-content: center">
+                  <a-range-picker v-model="dateRange"
+                                  :disabled="expenses.length === 0 && dateRange.length === 0"
+                  >
+                  </a-range-picker>
                 </div>
               </div>
               <a-table id="expenses-table"
@@ -64,7 +71,7 @@
                        :rowKey="record => record._id"
                        :dataSource="expenses"
                        :pagination="expenses.length > 50 ? {pageSize: 50} : false"
-                       v-if="fetchedExpenses.length > 0 || expensesLoading"
+                       v-if="expenses.length > 0 || expensesLoading || searchString || dateRange.length > 0"
                        :loading="expensesLoading"
               >
                 <template slot="amount" slot-scope="amount">
@@ -201,7 +208,6 @@ export default {
       groupEvent: {},
       groupMembers: {},
       expenses: [],
-      fetchedExpenses: [],
       transactions: [],
       currentDialogExpense: null,
       labelHighlighted: false,
@@ -211,6 +217,7 @@ export default {
       enterExpenseLoading: false,
       enterGroupMembersLoading: false,
       searchString: '',
+      dateRange: [],
       columns: [
         {
           title: 'Description',
@@ -273,11 +280,20 @@ export default {
       let params = this.$route.params
       let groupEventPromise = GroupBillSplitterService.fetchGroupEvent(params.id)
       let groupMembersPromise = GroupBillSplitterService.fetchMembers(params.id)
-      let expensesPromise = GroupBillSplitterService.fetchExpenses(params.id)
+      let expensesPromise = GroupBillSplitterService.fetchExpenses(params.id, this.searchString, this.dateRange)
       Promise.all([groupEventPromise, groupMembersPromise, expensesPromise])
         .then(values => {
           this.setData(values[0].data, values[1].data, values[2].data)
         })
+        .catch(err => {
+          this.setData({}, [], [])
+          console.log(err)
+        })
+    },
+    fetchExpenses () {
+      this.expensesLoading = true
+      GroupBillSplitterService.fetchExpenses(this.$route.params.id, this.searchString, this.dateRange)
+        .then(expenses => this.setExpenses(expenses.data))
         .catch(err => {
           this.setData({}, [], [])
           console.log(err)
@@ -305,14 +321,17 @@ export default {
       this.groupEvent = groupEvent
 
       this.setGroupMembers(groupMembers)
+      this.setExpenses(expenses)
 
+      this.expensesLoading = this.groupMembersLoading = this.transactionsLoading = false
+    },
+    setExpenses (expenses) {
       for (let e of expenses) {
         e.amount = parseFloat(e.amount.$numberDecimal)
       }
       this.expenses = expenses
-      this.fetchedExpenses = expenses
-      this.searchString = ''
-      this.expensesLoading = this.groupMembersLoading = this.transactionsLoading = false
+      // this.fetchedExpenses = expenses
+      this.expensesLoading = false
     },
     setGroupMembers (groupMembers) {
       this.groupMembers = {}
@@ -358,7 +377,9 @@ export default {
       if (formType === 'added') {
         // Add new expense to list and post it to server
         expense._id = ''
-        this.expenses.push(expense)
+        if (this.matchesSearch(expense, this.searchString, this.dateRange)) {
+          this.expenses.push(expense)
+        }
         expense._id = undefined
         GroupBillSplitterService.postExpense(this.$route.params.id, expense)
           .then(res => {
@@ -375,7 +396,11 @@ export default {
       } else if (formType === 'edited') {
         // Replace edited expense in list and put it on server
         let expenseIndex = this.expenses.findIndex(e => e._id === expense._id)
-        this.expenses.splice(expenseIndex, 1, expense)
+        if (this.matchesSearch(expense, this.searchString, this.dateRange)) {
+          this.expenses.splice(expenseIndex, 1, expense)
+        } else {
+          this.expenses.splice(expenseIndex, 1)
+        }
         GroupBillSplitterService.putExpense(this.$route.params.id, expense._id, expense)
           .then()
           .catch(err => {
@@ -405,8 +430,10 @@ export default {
         this.fetchTransactions()
       }
     },
-    matchesExpense (expense, searchString) {
-      console.log(expense.payingGroupMember)
+    matchesSearch (expense, searchString, dateRange) {
+      if (dateRange.length > 0 && (dateRange[0] > expense.date || dateRange[1] < expense.date)) {
+        return false
+      }
       if (expense.description.includes(searchString) ||
         this.groupMembers[expense.payingGroupMember].name.includes(searchString)) {
         return true
@@ -432,11 +459,10 @@ export default {
       document.title = `${this.groupEvent.name} | Group Bill Splitter`
     },
     searchString () {
-      if (this.searchString) {
-        this.expenses = this.fetchedExpenses.filter(expense => this.matchesExpense(expense, this.searchString))
-      } else {
-        this.expenses = this.fetchedExpenses
-      }
+      this.fetchExpenses()
+    },
+    dateRange () {
+      this.fetchExpenses()
     }
   }
 }

@@ -3,8 +3,18 @@ import Api from '@/services/api'
 let jsonHeaders = {headers: {'Content-type': 'application/json'}}
 
 export default {
-  fetchExpenses (groupEventId) {
-    return Api().get(`/groupEvents/${groupEventId}/expenses`)
+  fetchExpenses (groupEventId, searchString, dateRange) {
+    let params = {}
+    if (dateRange && dateRange.length > 0) {
+      params['minDate'] = dateRange[0].format('YYYY-MM-DD')
+      params['maxDate'] = dateRange[1].format('YYYY-MM-DD')
+    }
+    if (searchString) {
+      params['memberNameSearch'] = searchString
+      params['descriptionSearch'] = searchString
+      params['or'] = 'true'
+    }
+    return Api().get(`/groupEvents/${groupEventId}/expenses`, {params})
   },
   fetchMembers (groupEventId) {
     return Api().get(`/groupEvents/${groupEventId}/members`)
