@@ -80,18 +80,10 @@
                     </div>
                 </template>
                 <template slot="description" slot-scope="description">
-                  <div :class="labelHighlighted ? 'label-highlight' : ''">
-                    <a-tooltip>
-                      <template slot="title">
-                        <a-icon type="edit"></a-icon>
-                      </template>
-                      <div style="display: flex; justify-content: stretch; cursor: pointer"
-                           @mouseover="labelHighlighted=true"
-                           @mouseleave="labelHighlighted=false"
-                           @click="editExpense(_id, 'description')">
-                        {{description}}
-                      </div>
-                    </a-tooltip>
+                  <div>
+                    <div style="display: flex; justify-content: stretch; cursor: pointer">
+                      {{description}}
+                    </div>
                   </div>
                 </template>
                 <template slot="payingGroupMember" slot-scope="payingGroupMember">
@@ -213,7 +205,6 @@ export default {
       expenses: [],
       transactions: [],
       currentDialogExpense: null,
-      labelHighlighted: false,
       expensesLoading: false,
       groupMembersLoading: false,
       transactionsLoading: false,
@@ -516,9 +507,6 @@ export default {
   }
   .somemorepadding {
     padding: 30px
-  }
-  .label-highlight {
-    background: #feffe6;
   }
   .ant-table {
     font-family: "Cantarell"
