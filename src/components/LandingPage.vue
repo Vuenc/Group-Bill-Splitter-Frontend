@@ -47,6 +47,9 @@ export default {
     createNewGroupEvent () {
       this.$router.push({name: 'CreateGroupEvent'})
     }
+  },
+  created () {
+    document.title = 'Group Bill Splitter: Split Expenses with your Friends'
   }
 }
 </script>

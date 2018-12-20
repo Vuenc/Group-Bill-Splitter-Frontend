@@ -396,11 +396,16 @@ export default {
     }
   },
   created () {
+    document.title = 'Group Event | Group Bill Splitter'
     this.fetchData()
   },
   watch: {
     $route () {
+      document.title = 'Group Event | Group Bill Splitter'
       this.fetchData()
+    },
+    groupEvent () {
+      document.title = `${this.groupEvent.name} | Group Bill Splitter`
     }
   }
 }

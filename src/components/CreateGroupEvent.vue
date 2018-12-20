@@ -104,6 +104,9 @@ export default {
       }
     }
   },
+  created () {
+    document.title = 'Create new Group Event | Group Bill Splitter'
+  },
   validations: {
     name: {
       required
