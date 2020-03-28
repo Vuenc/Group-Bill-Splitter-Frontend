@@ -88,7 +88,7 @@
                     </div>
                 </template>
                 <template slot="description" slot-scope="description">
-                  <div>
+                  <div @click="editExpense(_id)">
                     <div style="display: flex; justify-content: stretch; cursor: pointer">
                       {{description}}
                     </div>
