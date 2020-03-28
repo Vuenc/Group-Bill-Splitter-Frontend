@@ -87,10 +87,10 @@
                       {{groupEvent.currencyPrefix}} {{amount | currency}}
                     </div>
                 </template>
-                <template slot="description" slot-scope="description">
+                <template slot="description" slot-scope="_id">
                   <div @click="editExpense(_id)">
                     <div style="display: flex; justify-content: stretch; cursor: pointer">
-                      {{description}}
+                      {{expenses[expenses.findIndex(e => e._id === _id)].description}}
                     </div>
                   </div>
                 </template>
@@ -259,7 +259,7 @@ export default {
       columns: [
         {
           title: 'Description',
-          dataIndex: 'description',
+          dataIndex: '_id',
           // sorter: true,
           width: '30%',
           scopedSlots: { customRender: 'description' }
