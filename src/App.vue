@@ -33,6 +33,7 @@ export default {
 </script>
 
 <style>
+  @import url('https://fonts.googleapis.com/css?family=Cantarell&display=swap');
 #app {
   font-family: 'Cantarell', 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
