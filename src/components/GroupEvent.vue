@@ -120,6 +120,9 @@
                   </div>
                 </template>
               </a-table>
+              <label v-else-if="searchTimeout || searchString || dateRange.length > 0" style="font-family: Cantarell; font-size: 110%">
+                No expenses match your search.
+              </label>
               <label v-else style="font-family: Cantarell; font-size: 110%">
                 There are no expenses yet. Add an expense to get started!
               </label>
@@ -255,6 +258,7 @@ export default {
       enterGroupMembersLoading: false,
       enterGroupEventLoading: false,
       searchString: '',
+      searchTimeout: null,
       dateRange: [],
       columns: [
         {
@@ -541,8 +545,16 @@ export default {
     groupEvent () {
       document.title = `${this.groupEvent.name} | Group Bill Splitter`
     },
+    // self-made 'debounce' feature to delay the search request
+    // (in order to not have to import some huge package)
     searchString () {
-      this.fetchExpenses()
+      if (this.searchTimeout) {
+        clearTimeout(this.searchTimeout)
+      }
+      var _fetchExpenses = this.fetchExpenses
+      this.searchTimeout = setTimeout(() => {
+        _fetchExpenses()
+      }, 400)
     },
     dateRange () {
       this.fetchExpenses()
