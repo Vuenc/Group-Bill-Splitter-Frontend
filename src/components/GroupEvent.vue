@@ -78,8 +78,8 @@
                        :columns="columns"
                        :rowKey="record => record._id"
                        :dataSource="expenses"
-                       :pagination="expenses.length > 50 ? {pageSize: 50} : false"
-                       v-if="expenses.length > 0 || expensesLoading || searchString || dateRange.length > 0"
+                       :pagination="expenses.length > 20 ? {pageSize: 20} : false"
+                       v-if="expenses.length > 0 || expensesLoading"
                        :loading="expensesLoading"
               >
                 <template slot="amount" slot-scope="amount">
