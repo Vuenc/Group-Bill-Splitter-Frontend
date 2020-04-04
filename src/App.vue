@@ -36,7 +36,7 @@ export default {
   @import url('https://fonts.googleapis.com/css?family=Cantarell&display=swap');
   @font-face {
     font-family: "Cantarell Light";
-    src: url("assets/fonts/Cantarell-Light.otf");
+    src: url("assets/fonts/Cantarell-Light.woff");
   }
 #app {
   font-family: 'Cantarell', 'Avenir', Helvetica, Arial, sans-serif;
