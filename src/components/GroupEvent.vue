@@ -59,8 +59,13 @@
                 <a-button size="large" type="primary"
                           @click="addExpense"
                           :enabled="!groupMembersLoading"
-                          style="margin-right: auto"
+                          style="margin-right: 10px"
                 >Add Expense</a-button>
+                <a-button size="large" type="primary"
+                          @click="addPayment"
+                          :enabled="!groupMembersLoading"
+                          style="margin-right: auto"
+                >Add Payment</a-button>
                 <div style="max-width: 50%; width: 300px; display: flex; flex-direction: column; justify-content: center; margin-left: 20px; margin-right: 20px">
                   <a-input placeholder="Search for expenses..."
                            v-model="searchString"
@@ -81,6 +86,7 @@
                        :pagination="expenses.length > 20 ? {pageSize: 20} : false"
                        v-if="expenses.length > 0 || expensesLoading"
                        :loading="expensesLoading"
+                       :rowClassName="(record, id) => record.isDirectPayment ? 'table-row-payment' : 'table-row-expense'"
               >
                 <template slot="amount" slot-scope="amount">
                     <div class="rightaligned currency-label" style="white-space: nowrap">
@@ -141,6 +147,10 @@
                     pays <label class="formatting-inline-label currency-label" style="font-size: 115%">
                     {{groupEvent.currencyPrefix}} {{transaction.amount | currency}}</label>
                     to <b class="formatting-inline-label">{{groupMembers[transaction.target].name}}</b>
+                    <a-button ref='settleTransactionButton'
+                              @click="settleTransaction(transaction)"
+                              style="margin-right: auto"
+                    >Settle</a-button>
                   </div>
                 </a-list-item>
                 <a-list-item v-if="transactionsLoading" style="margin-top: 30px"></a-list-item>
@@ -172,13 +182,15 @@
     <a-modal ref="enterExpenseModal"
              v-model="enterExpenseModalVisible"
              :destroyOnClose="true"
-             title="Add Expense"
+             :title="(currentDialogExpenseIsDirectPayment)
+                ? 'Add Payment' : 'Add Expense'"
              @ok="expenseModalOkPressed"
              :confirm-loading="enterExpenseLoading"
     >
       <enter-expense-form ref="expenseForm"
                         :groupMembers="groupMembers"
                         :inputExpense="currentDialogExpense"
+                        :add-direct-payment="currentDialogExpenseIsDirectPayment"
                         :currencyPrefix="groupEvent.currencyPrefix"
                         @submit="expenseModalOkPressed"
       >
@@ -251,6 +263,7 @@ export default {
       expenses: [],
       transactions: [],
       currentDialogExpense: null,
+      currentDialogExpenseIsDirectPayment: false,
       expensesLoading: false,
       groupMembersLoading: false,
       transactionsLoading: false,
@@ -401,6 +414,12 @@ export default {
     // Methods for editing expenses and handling the expense form overlay ('Modal')
     addExpense () {
       this.currentDialogExpense = null
+      this.currentDialogExpenseIsDirectPayment = false
+      this.enterExpenseModalVisible = true
+    },
+    addPayment () {
+      this.currentDialogExpense = null
+      this.currentDialogExpenseIsDirectPayment = true
       this.enterExpenseModalVisible = true
     },
     editExpense (id) {
@@ -495,6 +514,26 @@ export default {
         })
         .finally(() => {
           this.enterGroupEventLoading = false
+        })
+    },
+    settleTransaction (transaction) {
+      let description = this.groupMembers[transaction.source].name +
+        ' → ' + this.groupMembers[transaction.target].name
+      let payment = {
+        amount: transaction.amount,
+        payingGroupMember: transaction.source,
+        sharingGroupMembers: [transaction.target],
+        date: Date.now(),
+        description: description,
+        isDirectPayment: true
+      }
+      GroupBillSplitterService.postExpense(this.$route.params.id, payment)
+        .then(res => {
+          payment._id = res.data.data._id
+        })
+        .catch(err => {
+          console.log('Adding expense failed: ' + err)
+          this.fetchData()
         })
     },
     // Load transactions when the tab is switched there
@@ -609,5 +648,11 @@ export default {
     padding: 5px;
     border: #bae7ff solid 1px;
     color: #1890ff
+  }
+  .table-row-expense {
+     background-color: #ffffff;
+   }
+  .table-row-payment {
+    background-color: #e5f2ff;
   }
 </style>

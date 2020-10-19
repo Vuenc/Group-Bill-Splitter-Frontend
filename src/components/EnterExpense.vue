@@ -37,27 +37,54 @@
         </a-row>
       </div>
     </a-form-item>
-    <a-form-item label="Shared by:" >
-      <a-radio-group v-model="sharingMembersEnterType">
-        <a-radio value="all" @click="sharingGroupMembers=[]">All group members (current and future members)</a-radio>
-        <a-radio value="select" @click="focusSharedMemberSelection">Select group members:</a-radio>
-        <a-select ref="selectSharingGroupMembersElement"
-                  v-model="sharingGroupMembers"
-                  mode="multiple"
-                  style="width: 100%"
-                  @focus="sharingMembersEnterType = 'select'"
-                  :placeholder="sharingMembersEnterType === 'all' ? 'All users share the expense' : 'Select users...'"
-                  :class="{'input-error': $v.sharingGroupMembers.$error}"
-                  :filterOption="matchesGroupMember"
-        >
-          <a-select-option v-for="member in groupMembers"
-                           :key="member._id"
-                           :value="member._id"
-                           :class="{'input-error': $v.payingGroupMember.$error}"
-          >{{member.name}}</a-select-option>
-        </a-select>
-      </a-radio-group>
-    </a-form-item>
+    <div v-if="!isDirectPayment">
+      <a-form-item label="Shared by:" >
+        <a-radio-group v-model="sharingMembersEnterType">
+          <a-radio value="all" @click="sharingGroupMembers=[]">All group members (current and future members)</a-radio>
+          <a-radio value="select" @click="focusSharedMemberSelection">Select group members:</a-radio>
+          <a-select ref="selectSharingGroupMembersElement"
+                    v-model="sharingGroupMembers"
+                    mode="multiple"
+                    style="width: 100%"
+                    @focus="sharingMembersEnterType = 'select'"
+                    :placeholder="sharingMembersEnterType === 'all' ? 'All users share the expense' : 'Select users...'"
+                    :class="{'input-error': $v.sharingGroupMembers.$error}"
+                    :filterOption="matchesGroupMember"
+          >
+            <a-select-option v-for="member in groupMembers"
+                             :key="member._id"
+                             :value="member._id"
+                             :class="{'input-error': $v.payingGroupMember.$error}"
+            >{{member.name}}</a-select-option>
+          </a-select>
+        </a-radio-group>
+      </a-form-item>
+    </div>
+    <div v-if="isDirectPayment">
+      <a-form-item>
+        <a-row type="flex" justify="space-between">
+          <a-col  style="flex-grow: 100; display: flex; justify-content: right">
+            <label class="ant-form-item ant-form-item-label nowrap somemarginright">Paid to:</label>
+          </a-col>
+          <a-col :span=10>
+            <a-select ref="selectPayingGroupMemberElement"
+                      placeholder="To who?"
+                      style="min-width: 100%"
+                      v-model="sharingGroupMembers[0]"
+                      :class="{'input-error': $v.sharingGroupMembers.$error}"
+                      showSearch
+                      :filterOption="matchesGroupMember"
+            >
+              <a-select-option v-for="member in groupMembers"
+                               :key="member._id"
+                               :value="member._id"
+              >
+                {{member.name}}</a-select-option>
+            </a-select>
+          </a-col>
+        </a-row>
+      </a-form-item>
+    </div>
     <a-form-item label="Date:">
       <a-date-picker v-model=date></a-date-picker>
       <a-button html-type="submit" style="visibility: hidden"/>
@@ -84,10 +111,11 @@ export default {
       payingGroupMember: [],
       sharingGroupMembers: [],
       date: moment(),
-      sharingMembersEnterType: 'all'
+      sharingMembersEnterType: 'all',
+      isDirectPayment: false
     }
   },
-  props: ['groupMembers', 'inputExpense', 'currencyPrefix'],
+  props: ['groupMembers', 'inputExpense', 'currencyPrefix', 'addDirectPayment'],
   mounted () {
     this.$refs.firstInput.focus()
   },
@@ -107,7 +135,8 @@ export default {
         amount: this.amount,
         payingGroupMember: this.payingGroupMember,
         sharingGroupMembers: this.sharingGroupMembers,
-        date: this.date.format('YYYY-MM-DD')
+        date: this.date.format('YYYY-MM-DD'),
+        isDirectPayment: this.isDirectPayment
       }
       if (!this.inputExpense) {
         confirmationCallback(expense, 'added')
@@ -141,6 +170,9 @@ export default {
         this.date = moment(this.inputExpense.date)
       }
       this.sharingMembersEnterType = this.sharingGroupMembers.length > 0 ? 'select' : 'all'
+      this.isDirectPayment = this.inputExpense.isDirectPayment
+    } else {
+      this.isDirectPayment = this.addDirectPayment
     }
   },
   validations: {
