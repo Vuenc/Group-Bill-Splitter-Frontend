@@ -93,8 +93,8 @@
                       {{groupEvent.currencyPrefix}} {{amount | currency}}
                     </div>
                 </template>
-                <template slot="description" slot-scope="_id, record">
-                  <div @click="editExpense(_id)">
+                <template slot="description" slot-scope="record">
+                  <div @click="editExpense(record._id)">
                     <div style="display: flex; justify-content: stretch; cursor: pointer">
                       {{record.description}}
                     </div>
