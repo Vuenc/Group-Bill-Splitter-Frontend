@@ -34,7 +34,7 @@
                         style="margin-top: 5px"/>
             </div>
             <a-list :loading="groupMembersLoading">
-              <a-list-item v-for="member of groupMembers" :key="member._id">
+              <a-list-item v-for="member of groupMembers" :key="`memberName${member._id}`">
                 <a-tooltip placement="right" title="You can customize this using Gravatar!">
                   <a-avatar shape="square" icon="user" :src='member.gravatar' style="margin-right:24px" />
                 </a-tooltip>
@@ -81,7 +81,7 @@
               </div>
               <a-table id="expenses-table"
                        :columns="columns"
-                       :rowKey="record => record._id"
+                       :rowKey="record => `tableRow${record._id}`"
                        :dataSource="expenses"
                        :pagination="expenses.length > 20 ? {pageSize: 20} : false"
                        v-if="expenses.length > 0 || expensesLoading"
@@ -93,10 +93,10 @@
                       {{groupEvent.currencyPrefix}} {{amount | currency}}
                     </div>
                 </template>
-                <template slot="description" slot-scope="_id">
+                <template slot="description" slot-scope="_id, record">
                   <div @click="editExpense(_id)">
                     <div style="display: flex; justify-content: stretch; cursor: pointer">
-                      {{expenses[expenses.findIndex(e => e._id === _id)].description}}
+                      {{record.description}}
                     </div>
                   </div>
                 </template>
@@ -276,7 +276,6 @@ export default {
       columns: [
         {
           title: 'Description',
-          dataIndex: '_id',
           // sorter: true,
           width: '30%',
           scopedSlots: { customRender: 'description' }
