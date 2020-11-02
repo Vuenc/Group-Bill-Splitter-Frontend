@@ -105,11 +105,25 @@
                     {{groupMembers[payingGroupMember].name}}
                   </div>
                 </template>
-                <template slot="sharingGroupMembers" slot-scope="sharingGroupMembers">
-                  <div v-if="sharingGroupMembers.length > 0">
-                    {{sharingGroupMembers.map(m => groupMembers[m].name).reduce((a, b) => a + ", " + b)}}
+                <template slot="sharingGroupMembers" slot-scope="record">
+                  <div v-if="record.sharingGroupMembers.length > 0">
+                    {{record.sharingGroupMembers.map(m => groupMembers[m].name).reduce((a, b) => a + ", " + b)}}
                   </div>
-                  <div v-else><i>Everyone</i></div>
+                  <div v-else-if="!record.proportionalSplitting"><i>Everyone</i></div>
+                  <div v-else-if="record.proportionalSplitting.splitType === 'percentages'">
+                    {{Object.values(record.proportionalSplitting.percentages)
+                    .filter(p => p.percentage > 0)
+                    .map(p => `${groupMembers[p.groupMember].name} (${(p.percentage*100)
+                      .toLocaleString('en', {maximumFractionDigits: 2})}%)`)
+                    .reduce((a, b) => a + ", " + b)}}
+                  </div>
+                  <div v-else-if="record.proportionalSplitting.splitType === 'amounts'">
+                    {{Object.values(record.proportionalSplitting.amounts)
+                    .filter(a => a.amount > 0)
+                    .map(a => `${groupMembers[a.groupMember].name} (${a.amount
+                      .toLocaleString('en', {maximumFractionDigits: 2})}${groupEvent.currencyPrefix})`)
+                    .reduce((a, b) => a + ", " + b)}}
+                  </div>
                 </template>
                 <template slot="date" slot-scope="date">
                   <div>
@@ -296,7 +310,6 @@ export default {
         },
         {
           title: 'Shared By',
-          dataIndex: 'sharingGroupMembers',
           width: '35%',
           scopedSlots: { customRender: 'sharingGroupMembers' }
         },

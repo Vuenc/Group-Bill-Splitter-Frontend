@@ -39,7 +39,7 @@
     </a-form-item>
     <div v-if="!isDirectPayment">
       <a-form-item label="Shared by:" >
-        <a-radio-group v-model="sharingMembersEnterType" @change="changeSharedBy">
+        <a-radio-group v-model="sharingMembersEnterType">
           <a-radio value="all">All group members (current and future members)</a-radio>
           <a-radio value="select" @click="focusSharedMemberSelection">Split evenly between:</a-radio>
           <a-select ref="selectSharingGroupMembersElement"
@@ -62,8 +62,9 @@
           </a-radio>
           <a-radio-group default-value="none" button-style="solid" v-model="splitType"
                          @change="changeSplitType">
-            <a-popover title="Recent splittings" placement="top" trigger="focus">
-              <a-radio-button value="percentage">
+            <a-popover title="Recent splittings" placement="top" trigger="hover">
+              <a-radio-button value="percentages"
+                              @click="changeSplitType">
                 Split by percentage
               </a-radio-button>
               <template slot="content">
@@ -75,29 +76,49 @@
                 </a-tooltip>
               </template>
             </a-popover>
-            <a-radio-button value="amount">Split by amount</a-radio-button>
+            <a-radio-button value="amounts"
+                            @click="changeSplitType">
+              Split by amount</a-radio-button>
           </a-radio-group>
         </a-radio-group>
-        <div v-for="(member, memberIndex) in groupMembers"
-             :key="'percentage' + member._id" v-show="splitType === 'percentage'">
+        <a-row v-for="(member, memberId) in groupMembers"
+             :key="'percentages' + member._id" v-show="splitType === 'percentages'">
           <a-col  style="flex-grow: 100; display: flex; justify-content: space-between" :offset=1 :span=7>
             <label class="ant-form-item ant-form-item-label nowrap somemarginright">{{member.name}}:</label>
           </a-col>
-          <a-col>
-            <a-input-number :ref="`percentageInput${memberIndex}`" :default-value="100" :min="0" :max="100" v-model="splitPercentages[member._id]"
-                            :formatter="value => `${value}%`" :parser="value => value.replace('%', '')"/>
+          <a-col :span=5 class="somemarginright">
+            <a-input :ref="`percentageInput${memberId}`"
+                     v-model.number="splitPercentages[member._id]"
+                     type="number" step="any"
+                     @change="changeSplitPercentage(memberId)"
+                     @focus="$refs[`percentageInput${memberId}`][0].$el.select()"
+                     :class="{'input-error': ($v.splitPercentages.$each[memberId] && $v.splitPercentages.$each[memberId].$error)
+                                  || !$v.splitPercentages.valuesSumTo}"
+            />
           </a-col>
-        </div>
-        <div v-for="(member, memberIndex) in groupMembers"
-             :key="'amount' + member._id" v-show="splitType === 'amount'">
+          <a-col :span=1>
+            <label>%</label>
+          </a-col>
+        </a-row>
+        <a-row v-for="(member, memberId) in groupMembers"
+             :key="'amounts' + member._id" v-show="splitType === 'amounts'">
           <a-col  style="flex-grow: 100; display: flex; justify-content: space-between" :offset=1 :span=7>
             <label class="ant-form-item ant-form-item-label nowrap somemarginright">{{member.name}}:</label>
           </a-col>
-          <a-col>
-            <a-input-number :ref="`amountInput${memberIndex}`"  :default-value="100" :min="0" :max="100" v-model="splitAmounts[member._id]"
-                            :formatter="value => `${value}${currencyPrefix}`" :parser="value => value.replace(currencyPrefix, '')"/>
+          <a-col :span=5 class="somemarginright">
+            <a-input :ref="`amountInput${memberId}`"
+                      v-model.number="splitAmounts[member._id]"
+                     type="number" step="any"
+                     @change="changeSplitAmount(memberId)"
+                     @focus="$refs[`amountInput${memberId}`][0].$el.select()"
+                     :class="{'input-error': ($v.splitAmounts.$each[memberId] && $v.splitAmounts.$each[memberId].$error)
+                                  || !$v.splitAmounts.valuesSumTo}"
+            />
           </a-col>
-        </div>
+          <a-col :span=1>
+            <label>{{currencyPrefix}}</label>
+          </a-col>
+        </a-row>
       </a-form-item>
     </div>
     <div v-if="isDirectPayment">
@@ -154,11 +175,20 @@
 import Vue from 'vue'
 import Antd from 'ant-design-vue'
 import 'ant-design-vue/dist/antd.css'
-import { required, decimal, requiredIf } from 'vuelidate/lib/validators'
+import { required, decimal, requiredIf, between, minValue } from 'vuelidate/lib/validators'
 
 let moment = require('moment')
 
 Vue.use(Antd)
+
+const isNearlyEqual = (num1, num2) => {
+  const epsilon = 1.192092896e-07
+  return Math.abs(num1 - num2) < epsilon
+}
+
+// custom vuelidate validator
+const valuesSumTo = (sumValueLambda) =>
+  (obj, vue) => isNearlyEqual(Object.values(obj).reduce((total, x) => total + x, 0), sumValueLambda(vue))
 
 export default {
   name: 'EnterExpense',
@@ -171,9 +201,9 @@ export default {
       date: moment(),
       sharingMembersEnterType: 'all', // valid: 'all', 'select', 'split'
       isDirectPayment: false,
-      splitType: 'none', // valid: 'none', 'percentage', 'amount'
-      splitPercentages: Object.fromEntries(Object.keys(this.groupMembers).map(id => [id, 0])),
-      splitAmounts: Object.fromEntries(Object.keys(this.groupMembers).map(id => [id, 0])),
+      splitType: 'none', // valid: 'none', 'percentages', 'amounts'
+      splitPercentages: Object.fromEntries(Object.keys(this.groupMembers).map(id => [id, null])),
+      splitAmounts: Object.fromEntries(Object.keys(this.groupMembers).map(id => [id, null])),
       splitOptions: [{name: 'Even', description: 'Split evenly', checked: true},
         {name: '60% / 40%', description: 'Vincent: 60%, Sonja: 40%', checked: false},
         {name: '30% / 40% / 30%', description: 'Vincent: 30%, Sonja: 40%, Max: 30%', checked: false},
@@ -199,9 +229,12 @@ export default {
     // Focus the first number input on selection of proportional splitting
     focusProportionalSplittingInput () {
       let firstMemberId = Object.keys(this.groupMembers)[0]
-      if (this.splitType === 'percentage') {
-        this.$nextTick(() => this.$refs['percentageInput' + firstMemberId][0].focus())
-      } else if (this.splitType === 'amount') {
+      if (this.splitType === 'percentages') {
+        this.$nextTick(() => {
+          let firstInput = this.$refs['percentageInput' + firstMemberId][0]
+          firstInput.focus()
+        })
+      } else if (this.splitType === 'amounts') {
         this.$nextTick(() => this.$refs['amountInput' + firstMemberId][0].focus())
       }
     },
@@ -218,6 +251,15 @@ export default {
         sharingGroupMembers: this.sharingGroupMembers,
         date: this.date.format('YYYY-MM-DD'),
         isDirectPayment: this.isDirectPayment
+      }
+      if (this.sharingMembersEnterType === 'split') {
+        if (this.splitType === 'percentages') {
+          expense.proportionalSplitting = { splitType: this.splitType,
+            percentages: Object.entries(this.splitPercentages).map(p => { return {groupMember: p[0], percentage: p[1] / 100} }) }
+        } else if (this.splitType === 'amounts') {
+          expense.proportionalSplitting = { splitType: this.splitType,
+            amounts: Object.entries(this.splitAmounts).map(a => { return {groupMember: a[0], amount: a[1]} }) }
+        }
       }
       if (!this.inputExpense) {
         confirmationCallback(expense, 'added')
@@ -238,25 +280,43 @@ export default {
     },
     // Implements search function on select element
     matchesGroupMember (searchString, element) {
-      return this.groupMembers[element.data.key].name.includes(searchString)
-    },
-    // Empty member selection and split type when different radio button is selected
-    changeSharedBy () {
-      console.log('changeSharedBy')
-      if (this.sharingMembersEnterType !== 'select') {
-        this.sharingGroupMembers = []
-      }
-      if (this.sharingMembersEnterType !== 'split') {
-        this.splitType = 'none'
-      } else {
-        this.splitType = 'percentage'
-      }
+      let id = element.data.key.substring('sharingMember'.length)
+      return this.groupMembers[id].name.includes(searchString)
     },
     changeSplitType () {
       if (this.sharingMembersEnterType !== 'split') {
         this.sharingMembersEnterType = 'split'
       }
       this.focusProportionalSplittingInput()
+    },
+    changeSplitPercentage (memberId) {
+      let groupMemberEntries = Object.entries(this.groupMembers)
+      let changeIndex = groupMemberEntries.findIndex(m => m[0] === memberId)
+      let sum = groupMemberEntries.slice(0, changeIndex + 1)
+        .map(entry => this.splitPercentages[entry[0]])
+        .reduce((total, x) => total + x)
+      let portion = Math.min(100, Math.max(0, (100 - sum) / (groupMemberEntries.length - (changeIndex + 1))))
+      if (isNaN(portion)) {
+        portion = null
+      }
+      for (let entry of groupMemberEntries.slice(changeIndex + 1)) {
+        this.splitPercentages[entry[0]] = portion
+      }
+    },
+    changeSplitAmount (memberId) {
+      let groupMemberEntries = Object.entries(this.groupMembers)
+      let changeIndex = groupMemberEntries.findIndex(m => m[0] === memberId)
+      let sum = groupMemberEntries.slice(0, changeIndex + 1)
+        .map(entry => this.splitAmounts[entry[0]])
+        .reduce((total, x) => total + x)
+      let portion = Math.min(this.amount, Math.max(0,
+        (this.amount - sum) / (groupMemberEntries.length - (changeIndex + 1))))
+      if (isNaN(portion)) {
+        portion = null
+      }
+      for (let entry of groupMemberEntries.slice(changeIndex + 1)) {
+        this.splitAmounts[entry[0]] = portion
+      }
     }
   },
   created () {
@@ -268,29 +328,82 @@ export default {
       if (this.inputExpense.date) {
         this.date = moment(this.inputExpense.date)
       }
-      this.sharingMembersEnterType = this.sharingGroupMembers.length > 0 ? 'select' : 'all'
+      if (this.inputExpense.proportionalSplitting) {
+        this.sharingMembersEnterType = 'split'
+        this.splitType = this.inputExpense.proportionalSplitting.splitType
+        if (this.splitType === 'percentages') {
+          for (let p of this.inputExpense.proportionalSplitting.percentages) {
+            this.splitPercentages[p.groupMember] = p.percentage * 100
+          }
+        } else if (this.splitType === 'amounts') {
+          for (let a of this.inputExpense.proportionalSplitting.amounts) {
+            this.splitAmounts[a.groupMember] = a.amount
+          }
+        }
+      } else {
+        this.sharingMembersEnterType = this.sharingGroupMembers.length > 0 ? 'select' : 'all'
+      }
       this.isDirectPayment = this.inputExpense.isDirectPayment
     } else {
       this.isDirectPayment = this.addDirectPayment
     }
   },
-  validations: {
-    description: {
-      required
-    },
-    amount: {
-      required,
-      decimal
-    },
-    payingGroupMember: {
-      required
-    },
-    date: {
-      required
-    },
-    sharingGroupMembers: {
-      requiredIf: requiredIf((vue) => vue.sharingMembersEnterType === 'select')
+  watch: {
+    // Empty member selection and split type when different radio button is selected
+    sharingMembersEnterType () {
+      if (this.sharingMembersEnterType !== 'select') {
+        this.sharingGroupMembers = []
+      }
+      if (this.sharingMembersEnterType !== 'split') {
+        this.splitType = 'none'
+      } else if (this.splitType === 'none') {
+        this.splitType = 'percentages'
+        this.changeSplitType()
+      }
     }
+  },
+  validations () {
+    // Static validations
+    let validations = {
+      description: {
+        required
+      },
+      amount: {
+        required,
+        decimal
+      },
+      payingGroupMember: {
+        required
+      },
+      date: {
+        required
+      },
+      sharingGroupMembers: {
+        requiredIf: requiredIf((vue) => vue.sharingMembersEnterType === 'select')
+      },
+      splitPercentages: { $each: {} }, // Dummy entry
+      splitAmounts: { $each: {} } // Dummy entry
+    }
+    if (this.sharingMembersEnterType === 'split' && this.splitType === 'percentages') {
+      // Validation of splitting percentages
+      validations.splitPercentages = {
+        $each: {
+          decimal,
+          between: between(0, 100)
+        },
+        valuesSumTo: valuesSumTo(_ => 100)
+      }
+    } else if (this.sharingMembersEnterType === 'split' && this.splitType === 'amounts') {
+      // Validation of splitting amounts
+      validations.splitAmounts = {
+        $each: {
+          decimal,
+          minValue: minValue(0)
+        },
+        valuesSumTo: valuesSumTo(vue => vue.amount)
+      }
+    }
+    return validations
   }
 }
 </script>
