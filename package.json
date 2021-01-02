@@ -11,9 +11,8 @@
     "e2e": "node test/e2e/runner.js",
     "test": "npm run unit && npm run e2e",
     "lint": "eslint --ext .js,.vue src test/unit test/e2e/specs",
+     "heroku-prebuild": "echo 'This should display before the build step'",
     "build": "echo 'i should ignore the build step'"
-    // "build: node build/build.js"
-    // "heroku-postbuild": "node build/build.js"
   },
   "dependencies": {
     "ant-design-vue": "^1.7.2",
