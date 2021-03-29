@@ -41,11 +41,11 @@
       <a-form-item label="Shared by:" >
         <a-radio-group v-model="sharingMembersEnterType">
           <a-radio value="all">All group members (current and future members)</a-radio>
-          <a-radio value="select" @click="focusSharedMemberSelection">Split evenly between:</a-radio>
+          <a-radio value="select" style="margin-top: 5px; margin-bottom: 5px" @click="focusSharedMemberSelection">Split evenly between:</a-radio>
           <a-select ref="selectSharingGroupMembersElement"
                     v-model="sharingGroupMembers"
                     mode="multiple"
-                    style="width: 100%"
+                    style="width: 100%; margin-bottom: 10px"
                     @focus="sharingMembersEnterType = 'select'"
                     placeholder="Select users..."
                     :class="{'input-error': $v.sharingGroupMembers.$error}"
