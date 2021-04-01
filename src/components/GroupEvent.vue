@@ -34,7 +34,7 @@
                         style="margin-top: 5px"/>
             </div>
             <a-list :loading="groupMembersLoading">
-              <a-list-item v-for="member of groupMembers" :key="`memberName${member._id}`">
+              <a-list-item v-for="member of groupMembers" :key="`memberName${member._id}`" style="display: block">
                 <a-tooltip placement="right" title="You can customize this using Gravatar!">
                   <a-avatar shape="square" icon="user" :src='member.gravatar' style="margin-right:24px" />
                 </a-tooltip>
@@ -78,6 +78,14 @@
                   >
                   </a-range-picker>
                 </div>
+              </div>
+              <div v-if="selectedExpenses.length > 0">
+                <span style="font-weight: bold; font-size: 16px">{{selectedExpenses.length}} entries selected.</span>
+                  <a-button size="medium" shape="circle" icon='edit' @click="editExpense(_id)"/>
+                  <a-popconfirm title="Delete this expense?" @confirm="deleteExpense(_id)">
+                    <a-icon slot="icon" type="question-circle-o" style="color: red" />
+                    <a-button size="medium" shape="circle" icon='delete'/>
+                  </a-popconfirm>
               </div>
               <a-table id="expenses-table"
                        :columns="columns"
@@ -138,6 +146,10 @@
                       <a-button size="small" shape="circle" icon='delete'/>
                     </a-popconfirm>
                   </div>
+                </template>
+                <template slot="select" slot-scope="expense">
+                  <a-checkbox @change="expenseSelectionChanged(expense, $event.target.checked)">
+                  </a-checkbox>
                 </template>
               </a-table>
               <label v-else-if="searchTimeout || searchString || dateRange.length > 0" style="font-family: Cantarell; font-size: 110%">
@@ -287,6 +299,7 @@ export default {
       searchString: '',
       searchTimeout: null,
       dateRange: [],
+      selectedExpenses: [], // new Set(), TODO use Set again (have to solve problems with Vue reactivity + Sets first)
       columns: [
         {
           title: 'Description',
@@ -316,7 +329,7 @@ export default {
         {
           title: 'Date',
           dataIndex: 'date',
-          width: '10%',
+          min_width: '20%',
           sorter: (a, b) => {
             return moment(a.date).isAfter(moment(b.date)) ? 1 : -1
           },
@@ -328,6 +341,11 @@ export default {
           dataIndex: '_id',
           width: '10%',
           scopedSlots: {customRender: 'actions'}
+        },
+        {
+          title: 'Select',
+          minWidth: '10%',
+          scopedSlots: {customRender: 'select'}
         }]
     }
   },
@@ -582,6 +600,16 @@ export default {
         content: 'Click OK to go back to the landing page.',
         onOk: () => this.$router.push({name: 'LandingPage'})
       })
+    },
+    expenseSelectionChanged (expense, selectionValue) {
+      if (selectionValue) {
+        this.selectedExpenses.push(expense._id)
+      } else {
+        let expenseIndex = this.selectedExpenses.indexOf(expense._id)
+        if (expenseIndex >= 0) {
+          this.selectedExpenses.splice(expenseIndex, 1)
+        }
+      }
     }
   },
   created () {
