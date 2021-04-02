@@ -81,10 +81,10 @@
               </div>
               <div v-if="selectedExpenses.length > 0">
                 <span style="font-weight: bold; font-size: 16px">{{selectedExpenses.length}} entries selected.</span>
-                  <a-button size="medium" shape="circle" icon='edit' @click="editExpense(_id)"/>
-                  <a-popconfirm title="Delete this expense?" @confirm="deleteExpense(_id)">
+                  <a-button size="default" shape="circle" icon='edit' @click="editMultipleExpenses(selectedExpenses)"/>
+                  <a-popconfirm title="Delete all selected expenses?" @confirm="deleteExpense(_id)">
                     <a-icon slot="icon" type="question-circle-o" style="color: red" />
-                    <a-button size="medium" shape="circle" icon='delete'/>
+                    <a-button size="default" shape="circle" icon='delete'/>
                   </a-popconfirm>
               </div>
               <a-table id="expenses-table"
@@ -102,7 +102,7 @@
                     </div>
                 </template>
                 <template slot="description" slot-scope="record">
-                  <div @click="editExpense(record._id)">
+                  <div @click="editExpense(record)">
                     <div style="display: flex; justify-content: stretch; cursor: pointer">
                       {{record.description}}
                     </div>
@@ -138,10 +138,10 @@
                     {{new Date(date) | dateFormat('DD.MM.YYYY')}}
                   </div>
                 </template>
-                <template slot="actions" slot-scope="_id">
+                <template slot="actions" slot-scope="record">
                   <div style="white-space: nowrap">
-                    <a-button size="small" shape="circle" icon='edit' @click="editExpense(_id)"/>
-                    <a-popconfirm title="Delete this expense?" @confirm="deleteExpense(_id)">
+                    <a-button size="small" shape="circle" icon='edit' @click="editExpense(record)"/>
+                    <a-popconfirm title="Delete this expense?" @confirm="deleteExpense(record)">
                       <a-icon slot="icon" type="question-circle-o" style="color: red" />
                       <a-button size="small" shape="circle" icon='delete'/>
                     </a-popconfirm>
@@ -218,6 +218,7 @@
                         :inputExpense="currentDialogExpense"
                         :add-direct-payment="currentDialogExpenseIsDirectPayment"
                         :currencyPrefix="groupEvent.currencyPrefix"
+                        :multiEditInputExpenses="selectedExpenses"
                         @submit="expenseModalOkPressed"
       >
       </enter-expense-form>
@@ -289,6 +290,8 @@ export default {
       expenses: [],
       transactions: [],
       currentDialogExpense: null,
+      // Needed because `currentDialogExpense === null` when a new expense/payment is added
+      // => signals the modal to create new expense/payment
       currentDialogExpenseIsDirectPayment: false,
       expensesLoading: false,
       groupMembersLoading: false,
@@ -338,7 +341,6 @@ export default {
         },
         {
           title: 'Actions',
-          dataIndex: '_id',
           width: '10%',
           scopedSlots: {customRender: 'actions'}
         },
@@ -452,19 +454,27 @@ export default {
       this.currentDialogExpenseIsDirectPayment = true
       this.enterExpenseModalVisible = true
     },
-    editExpense (id) {
-      this.currentDialogExpense = this.expenses[this.expenses.findIndex(e => e._id === id)]
+    editExpense (expense) {
+      // TODO avoid editing direct payments + expenses together
+      this.currentDialogExpense = expense
       this.enterExpenseModalVisible = true
     },
-    deleteExpense (id) {
-      let expenseIndex = this.expenses.findIndex(e => e._id === id)
+    deleteExpense (expense) {
+      let expenseIndex = this.expenses.findIndex(e => e._id === expense._id)
       this.expenses.splice(expenseIndex, 1)
-      return GroupBillSplitterService.deleteExpense(this.$route.params.id, id)
+      return GroupBillSplitterService.deleteExpense(this.$route.params.id, expense._id)
         .then()
         .catch(err => {
           console.log('Deleting expense failed: ' + err)
           this.fetchData()
         })
+    },
+    editMultipleExpenses (expenses) {
+      this.currentDialogExpense = null
+      this.enterExpenseModalVisible = true
+    },
+    deleteMultipleExpenses () {
+      // TODO
     },
     expenseModalOkPressed () {
       this.$refs.expenseForm.okPressed(this.expenseModalOkFinished)
@@ -603,9 +613,9 @@ export default {
     },
     expenseSelectionChanged (expense, selectionValue) {
       if (selectionValue) {
-        this.selectedExpenses.push(expense._id)
+        this.selectedExpenses.push(expense)
       } else {
-        let expenseIndex = this.selectedExpenses.indexOf(expense._id)
+        let expenseIndex = this.selectedExpenses.findIndex(e => e._id === expense._id)
         if (expenseIndex >= 0) {
           this.selectedExpenses.splice(expenseIndex, 1)
         }

@@ -1,26 +1,31 @@
 <template>
   <a-form @submit="$emit('submit')">
-    <a-form-item label="Description">
-      <a-input ref="firstInput" v-model="description" placeholder="What was paid for?" :class="{'input-error': $v.description.$error}"></a-input>
+    <a-form-item :label="'Description' + (!multiEditMode ? '' :
+      (description ? '' : ' (different values)'))"
+                 :class="(!multiEditMode || description) ? '' : 'leave-unchanged-form-item'">
+      <a-input ref="firstInput" v-model="description" :placeholder="!multiEditMode ? 'What was paid for?' : '(leave unchanged)'" :class="{'input-error': $v.description.$error}"></a-input>
     </a-form-item>
-    <a-form-item label="Amount">
+    <a-form-item :label="'Amount' + (!multiEditMode ? '' :
+      (amount ? '' : ' (different values)'))"
+                 :class="(!multiEditMode || amount) ? '' : 'leave-unchanged-form-item'">
       <div>
         <a-row type="flex" justify="space-between">
           <a-col :span=9  class="somemarginright">
             <a-input style="min-width: 100%"
                      v-model="amount"
-                     placeholder="How much?"
+                     :placeholder="!multiEditMode ? 'How much?' : '(leave unchanged)'"
                      :class="{'input-error': $v.amount.$error}"
                      @blur="formatAmount"
             ></a-input>
           </a-col>
           <a-col  style="flex-grow: 100; display: flex; justify-content: space-between">
-              <label>{{currencyPrefix}}</label>
-              <label class="ant-form-item ant-form-item-label nowrap somemarginright">Paid by:</label>
+              <label :class="(!multiEditMode || payingGroupMember) ? '' : ' leave-unchanged-label'">{{currencyPrefix}}</label>
+              <label :class="'ant-form-item ant-form-item-label nowrap somemarginright'
+                + ((!multiEditMode || payingGroupMember) ? '' : ' leave-unchanged-label')">Paid by:</label>
           </a-col>
           <a-col :span=10>
             <a-select ref="selectPayingGroupMemberElement"
-                      placeholder="Who paid?"
+                      :placeholder="!multiEditMode ? 'Who paid?' : '(leave unchanged)'"
                       style="min-width: 100%"
                       v-model="payingGroupMember"
                       :class="{'input-error': $v.payingGroupMember.$error}"
@@ -38,7 +43,9 @@
       </div>
     </a-form-item>
     <div v-if="!isDirectPayment">
-      <a-form-item label="Shared by:" >
+      <a-form-item :label="'Description' + (!multiEditMode ? '' :
+          (sharingMembersEnterType ? '' : ' (different values)'))"
+                   :class="(!multiEditMode || sharingMembersEnterType) ? '' : 'leave-unchanged-form-item'">
         <a-radio-group v-model="sharingMembersEnterType">
           <a-radio value="all">All group members (current and future members)</a-radio>
           <a-radio value="select" style="margin-top: 5px; margin-bottom: 5px" @click="focusSharedMemberSelection">Split evenly between:</a-radio>
@@ -125,11 +132,12 @@
       <a-form-item>
         <a-row type="flex" justify="space-between">
           <a-col  style="flex-grow: 100; display: flex; justify-content: right">
-            <label class="ant-form-item ant-form-item-label nowrap somemarginright">Paid to:</label>
+            <label :class="'ant-form-item ant-form-item-label nowrap somemarginright'
+              + ((!multiEditMode || sharingGroupMembers.length > 0) ? '' : ' leave-unchanged-label')">Paid to:</label>
           </a-col>
           <a-col :span=10>
             <a-select ref="selectPayingGroupMemberElement"
-                      placeholder="To who?"
+                      :placeholder="!multiEditMode ? 'To who?' : '(leave unchanged)'"
                       style="min-width: 100%"
                       v-model="sharingGroupMembers[0]"
                       :class="{'input-error': $v.sharingGroupMembers.$error}"
@@ -147,8 +155,10 @@
       </a-form-item>
     </div>
 
-    <a-form-item label="Date:">
-      <a-date-picker v-model=date></a-date-picker>
+    <a-form-item :label="'Date' + (!multiEditMode ? '' :
+                    (date ? '' : ' (different values)'))"
+                 :class="(!multiEditMode || date) ? '' : 'leave-unchanged-form-item'">
+      <a-date-picker v-model=date :placeholder="!multiEditMode ? 'Select Date...' : '(leave unchanged)'"></a-date-picker>
       <a-button html-type="submit" style="visibility: hidden"/>
     </a-form-item>
 
@@ -175,7 +185,7 @@
 import Vue from 'vue'
 import Antd from 'ant-design-vue'
 import 'ant-design-vue/dist/antd.css'
-import { required, decimal, requiredIf, between, minValue } from 'vuelidate/lib/validators'
+import { /* required, */ decimal, requiredIf, between, minValue } from 'vuelidate/lib/validators'
 
 let moment = require('moment')
 
@@ -196,7 +206,7 @@ export default {
     return {
       description: '',
       amount: null,
-      payingGroupMember: [],
+      payingGroupMember: undefined, // only `undefined` ensures the placeholder in the ant-select element shows up
       sharingGroupMembers: [],
       date: moment(),
       sharingMembersEnterType: 'all', // valid: 'all', 'select', 'split'
@@ -214,10 +224,11 @@ export default {
         {name: '35% / 65%', description: 'Vincent: 35%, Sonja: 65%', checked: false},
         {name: '20% / 20% / 30% / 20% / 10%', description: 'Vincent: 20%, Sonja: 20%, Max: 30%, Evelyn: 20%, Norman: 10%', checked: false},
         {name: '60% / 40% ', description: 'Max: 60%, Norman: 40%', checked: false}
-      ]
+      ],
+      multiEditMode: false
     }
   },
-  props: ['groupMembers', 'inputExpense', 'currencyPrefix', 'addDirectPayment'],
+  props: ['groupMembers', 'inputExpense', 'currencyPrefix', 'addDirectPayment', 'multiEditInputExpenses'],
   mounted () {
     this.$refs.firstInput.focus()
   },
@@ -280,7 +291,9 @@ export default {
     },
     // Implements search function on select element
     matchesGroupMember (searchString, element) {
-      let id = element.data.key.substring('sharingMember'.length)
+      let id = element.data.key.substring('payingMember'.length)
+      console.log(element.data.key)
+      console.log(this.groupMembers)
       return this.groupMembers[id].name.includes(searchString)
     },
     changeSplitType () {
@@ -317,10 +330,58 @@ export default {
       for (let entry of groupMemberEntries.slice(changeIndex + 1)) {
         this.splitAmounts[entry[0]] = portion
       }
+    },
+    // returns helper method which is used to check if multiple expenses have the same proportional splitting.
+    hasSameSplittingAsFirstExpense (firstExpense) {
+      return function (e) {
+        if (!e.proportionalSplitting ||
+            e.proportionalSplitting.splitType !== firstExpense.proportionalSplitting.splitType) {
+          return false
+        }
+        let firstSplittingEntries, currentSplittingEntries
+        if (e.proportionalSplitting.splitType === 'percentages') {
+          firstSplittingEntries = firstExpense.proportionalSplitting.percentages
+          currentSplittingEntries = e.proportionalSplitting.percentages
+        } else if (e.proportionalSplitting.splitType === 'amounts') {
+          firstSplittingEntries = firstExpense.proportionalSplitting.amounts
+          currentSplittingEntries = e.proportionalSplitting.amounts
+        }
+        return Object.keys(firstSplittingEntries).length === Object.keys(currentSplittingEntries).length &&
+          Object.entries(currentSplittingEntries).every(entry => firstSplittingEntries[entry[0]] === entry[1])
+      }
     }
   },
   created () {
-    if (this.inputExpense) {
+    this.multiEditMode = this.multiEditInputExpenses.length > 0
+    if (this.multiEditMode) {
+      let firstExpense = this.multiEditInputExpenses[0]
+      this.description = this.multiEditInputExpenses.every(e => e.description === firstExpense.description) ? firstExpense.description : null
+      this.amount = this.multiEditInputExpenses.every(e => e.amount === firstExpense.amount) ? firstExpense.amount : null
+      this.payingGroupMember = this.multiEditInputExpenses.every(e => e.payingGroupMember === firstExpense.payingGroupMember) ? firstExpense.payingGroupMember : undefined
+      this.sharingGroupMembers = this.multiEditInputExpenses.every(e => e.sharingGroupMembers === firstExpense.sharingGroupMembers) ? firstExpense.sharingGroupMembers : undefined
+      this.date = this.multiEditInputExpenses.every(e => e.date === firstExpense.date) ? firstExpense.date : null
+      // Only set proportional splitting if it is enabled for all expenses and all have the same `splitType`
+      if (firstExpense.proportionalSplitting && this.multiEditInputExpenses.every(this.hasSameSplittingAsFirstExpense(firstExpense))) {
+        this.sharingMembersEnterType = 'split'
+        this.splitType = firstExpense.proportionalSplitting.splitType
+        if (this.splitType === 'percentages') {
+          for (let p of firstExpense.proportionalSplitting.percentages) {
+            this.splitPercentages[p.groupMember] = p.percentage * 100
+          }
+        } else if (this.splitType === 'amounts') {
+          for (let a of firstExpense.proportionalSplitting.amounts) {
+            this.splitAmounts[a.groupMember] = a.amount
+          }
+        }
+      } else if (this.sharingGroupMembers) {
+        this.sharingMembersEnterType = this.sharingGroupMembers.length > 0 ? 'select' : 'all'
+      } else {
+        this.sharingMembersEnterType = null
+      }
+
+      // Parent component must ensure multiEditInputExpenses contains only one kind, either direct payments or expenses.
+      this.isDirectPayment = firstExpense.isDirectPayment
+    } else if (this.inputExpense) {
       this.description = this.inputExpense.description
       this.amount = this.inputExpense.amount
       this.payingGroupMember = this.inputExpense.payingGroupMember
@@ -366,17 +427,17 @@ export default {
     // Static validations
     let validations = {
       description: {
-        required
+        requiredIf: requiredIf(vue => !vue.multiEditMode)
       },
       amount: {
-        required,
+        requiredIf: requiredIf(vue => !vue.multiEditMode),
         decimal
       },
       payingGroupMember: {
-        required
+        requiredIf: requiredIf(vue => !vue.multiEditMode)
       },
       date: {
-        required
+        requiredIf: requiredIf(vue => !vue.multiEditMode)
       },
       sharingGroupMembers: {
         requiredIf: requiredIf((vue) => vue.sharingMembersEnterType === 'select')
@@ -424,5 +485,11 @@ export default {
   }
   .input-error >>> .ant-select-selection {
     border-color: #f5222d;
+  }
+  .leave-unchanged-form-item >>> .ant-form-item-label > label,
+  .leave-unchanged-label,
+  .leave-unchanged-form-item >>> .ant-radio-wrapper,
+  .leave-unchanged-form-item >>> .ant-radio-button-wrapper  {
+    color: #aaaaaa;
   }
 </style>
