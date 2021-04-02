@@ -260,7 +260,7 @@ export default {
         amount: this.amount,
         payingGroupMember: this.payingGroupMember,
         sharingGroupMembers: this.sharingGroupMembers,
-        date: this.date.format('YYYY-MM-DD'),
+        date: this.date ? this.date.format('YYYY-MM-DD') : undefined,
         isDirectPayment: this.isDirectPayment
       }
       if (this.sharingMembersEnterType === 'split') {
@@ -272,11 +272,18 @@ export default {
             amounts: Object.entries(this.splitAmounts).map(a => { return {groupMember: a[0], amount: a[1]} }) }
         }
       }
-      if (!this.inputExpense) {
-        confirmationCallback(expense, 'added')
+      if (!this.multiEditMode) {
+        if (!this.inputExpense) {
+          confirmationCallback(expense, 'added')
+        } else {
+          expense._id = this.inputExpense._id
+          confirmationCallback(expense, 'edited')
+        }
       } else {
-        expense._id = this.inputExpense._id
-        confirmationCallback(expense, 'edited')
+        if (expense.sharingGroupMembers && expense.sharingGroupMembers.length === 0) {
+          expense.sharingGroupMembers = undefined
+        }
+        confirmationCallback(expense, 'multi-edited')
       }
     },
     // Format the amount input box
@@ -381,7 +388,7 @@ export default {
             this.splitAmounts[a.groupMember] = a.amount
           }
         }
-      } else if (this.sharingGroupMembers) {
+      } else if (!firstExpense.proportionalSplitting && this.sharingGroupMembers) {
         this.sharingMembersEnterType = this.sharingGroupMembers.length > 0 ? 'select' : 'all'
       } else {
         this.sharingMembersEnterType = null

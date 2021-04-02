@@ -151,7 +151,7 @@
                   </div>
                 </template>
                 <template slot="select" slot-scope="expense">
-                  <a-checkbox @change="expenseSelectionChanged(expense, $event.target.checked)">
+                  <a-checkbox @change="expenseSelectionChanged(expense, $event.target.checked)" v-model="expense.isSelected">
                   </a-checkbox>
                 </template>
               </a-table>
@@ -429,6 +429,7 @@ export default {
         e.amount = parseFloat(e.amount.$numberDecimal)
       }
       this.expenses = expenses
+      this.selectedExpenses = []
       // this.fetchedExpenses = expenses
       this.expensesLoading = false
     },
@@ -472,6 +473,9 @@ export default {
     deleteExpense (expense) {
       let expenseIndex = this.expenses.findIndex(e => e._id === expense._id)
       this.expenses.splice(expenseIndex, 1)
+      if (expense.isSelected) {
+        this.expenseSelectionChanged(expense, false) // deselect expense if it was selected
+      }
       return GroupBillSplitterService.deleteExpense(this.$route.params.id, expense._id)
         .then()
         .catch(err => {
@@ -481,12 +485,21 @@ export default {
     },
     editMultipleExpenses (expenses) {
       // TODO avoid editing direct payments + expenses together
+      if (!expenses.every(e => e.isDirectPayment === expenses[0].isDirectPayment)) {
+        this.$warning({title: 'Expenses and direct payments selected!',
+          content: 'You cannot edit expenses and direct payments at the same time. Please select only ' +
+            'one of the two kinds.'})
+        return
+      }
       this.currentDialogExpense = null
       this.multiEditDialogExpenses = expenses
       this.enterExpenseModalVisible = true
     },
     deleteMultipleExpenses (expenses) {
-      // TODO
+      let selectedExpenses = [...expenses]
+      for (let expense of selectedExpenses) {
+        this.deleteExpense(expense)
+      }
     },
     expenseModalOkPressed () {
       this.$refs.expenseForm.okPressed(this.expenseModalOkFinished)
@@ -530,6 +543,8 @@ export default {
             this.enterExpenseLoading = false
             this.enterExpenseModalVisible = false
           })
+      } else if (formType === 'multi-edited') {
+
       }
     },
     // Methods for handling the edit group members overlay ('Modal')
@@ -600,12 +615,12 @@ export default {
       if (dateRange.length > 0 && (dateRange[0] > expense.date || dateRange[1] < expense.date)) {
         return false
       }
-      if (expense.description.includes(searchString) ||
-        this.groupMembers[expense.payingGroupMember].name.includes(searchString)) {
+      if (expense.description.toLowerCase().includes(searchString.toLowerCase()) ||
+        this.groupMembers[expense.payingGroupMember].name.toLowerCase().includes(searchString.toLowerCase())) {
         return true
       }
       for (let member of expense.sharingGroupMembers) {
-        if (this.groupMembers[member].name.includes(searchString)) {
+        if (this.groupMembers[member].name.toLowerCase().includes(searchString.toLowerCase())) {
           return true
         }
       }
