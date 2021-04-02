@@ -79,13 +79,16 @@
                   </a-range-picker>
                 </div>
               </div>
-              <div v-if="selectedExpenses.length > 0">
-                <span style="font-weight: bold; font-size: 16px">{{selectedExpenses.length}} entries selected.</span>
-                  <a-button size="default" shape="circle" icon='edit' @click="editMultipleExpenses(selectedExpenses)"/>
-                  <a-popconfirm title="Delete all selected expenses?" @confirm="deleteExpense(_id)">
-                    <a-icon slot="icon" type="question-circle-o" style="color: red" />
-                    <a-button size="default" shape="circle" icon='delete'/>
-                  </a-popconfirm>
+              <div v-if="selectedExpenses.length > 0" style="margin-bottom: 10px">
+                <span style="font-weight: bold; font-size: 16px">
+                    {{selectedExpenses.length}} entries selected.
+                </span>
+                <a-button :disabled="selectedExpenses.length < 2" size="default" shape="circle" icon='edit'
+                          @click="editMultipleExpenses(selectedExpenses)"/>
+                <a-popconfirm title="Delete all selected expenses?" @confirm="deleteMultipleExpenses(selectedExpenses)">
+                  <a-icon slot="icon" type="question-circle-o" style="color: red" />
+                  <a-button :disabled="selectedExpenses.length < 2" size="default" shape="circle" icon='delete'/>
+                </a-popconfirm>
               </div>
               <a-table id="expenses-table"
                        :columns="columns"
@@ -208,8 +211,11 @@
     <a-modal ref="enterExpenseModal"
              v-model="enterExpenseModalVisible"
              :destroyOnClose="true"
-             :title="(currentDialogExpenseIsDirectPayment)
-                ? 'Add Payment' : 'Add Expense'"
+             :title="(!multiEditDialogExpenses || multiEditDialogExpenses.length == 0) ?
+                `${currentDialogExpense ? 'Edit' : 'Add'} ${
+                !currentDialogExpenseIsDirectPayment ? 'Expense' : 'Payment'}`
+                : `Edit ${multiEditDialogExpenses.length} Selected ${
+                !multiEditDialogExpenses[0].isDirectPayment ? 'Expenses' : 'Payments'}`"
              @ok="expenseModalOkPressed"
              :confirm-loading="enterExpenseLoading"
     >
@@ -217,8 +223,8 @@
                         :groupMembers="groupMembers"
                         :inputExpense="currentDialogExpense"
                         :add-direct-payment="currentDialogExpenseIsDirectPayment"
+                        :multiEditInputExpenses="multiEditDialogExpenses"
                         :currencyPrefix="groupEvent.currencyPrefix"
-                        :multiEditInputExpenses="selectedExpenses"
                         @submit="expenseModalOkPressed"
       >
       </enter-expense-form>
@@ -303,6 +309,7 @@ export default {
       searchTimeout: null,
       dateRange: [],
       selectedExpenses: [], // new Set(), TODO use Set again (have to solve problems with Vue reactivity + Sets first)
+      multiEditDialogExpenses: [], // becomes a copy of selectedExpenses in multi-edit mode, null in single-edit mode
       columns: [
         {
           title: 'Description',
@@ -447,16 +454,19 @@ export default {
     addExpense () {
       this.currentDialogExpense = null
       this.currentDialogExpenseIsDirectPayment = false
+      this.multiEditDialogExpenses = null
       this.enterExpenseModalVisible = true
     },
     addPayment () {
       this.currentDialogExpense = null
       this.currentDialogExpenseIsDirectPayment = true
+      this.multiEditDialogExpenses = null
       this.enterExpenseModalVisible = true
     },
     editExpense (expense) {
-      // TODO avoid editing direct payments + expenses together
       this.currentDialogExpense = expense
+      this.currentDialogExpenseIsDirectPayment = expense.isDirectPayment
+      this.multiEditDialogExpenses = null
       this.enterExpenseModalVisible = true
     },
     deleteExpense (expense) {
@@ -470,10 +480,12 @@ export default {
         })
     },
     editMultipleExpenses (expenses) {
+      // TODO avoid editing direct payments + expenses together
       this.currentDialogExpense = null
+      this.multiEditDialogExpenses = expenses
       this.enterExpenseModalVisible = true
     },
-    deleteMultipleExpenses () {
+    deleteMultipleExpenses (expenses) {
       // TODO
     },
     expenseModalOkPressed () {

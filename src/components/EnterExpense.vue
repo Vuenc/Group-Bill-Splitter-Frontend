@@ -43,7 +43,7 @@
       </div>
     </a-form-item>
     <div v-if="!isDirectPayment">
-      <a-form-item :label="'Description' + (!multiEditMode ? '' :
+      <a-form-item :label="'Shared by' + (!multiEditMode ? '' :
           (sharingMembersEnterType ? '' : ' (different values)'))"
                    :class="(!multiEditMode || sharingMembersEnterType) ? '' : 'leave-unchanged-form-item'">
         <a-radio-group v-model="sharingMembersEnterType">
@@ -185,7 +185,7 @@
 import Vue from 'vue'
 import Antd from 'ant-design-vue'
 import 'ant-design-vue/dist/antd.css'
-import { /* required, */ decimal, requiredIf, between, minValue } from 'vuelidate/lib/validators'
+import { decimal, requiredIf, between, minValue } from 'vuelidate/lib/validators'
 
 let moment = require('moment')
 
@@ -340,28 +340,36 @@ export default {
         }
         let firstSplittingEntries, currentSplittingEntries
         if (e.proportionalSplitting.splitType === 'percentages') {
-          firstSplittingEntries = firstExpense.proportionalSplitting.percentages
-          currentSplittingEntries = e.proportionalSplitting.percentages
+          firstSplittingEntries = firstExpense.proportionalSplitting.percentages.map(p => [p.groupMember, p.percentage]).sort()
+          currentSplittingEntries = e.proportionalSplitting.percentages.map(p => [p.groupMember, p.percentage]).sort()
         } else if (e.proportionalSplitting.splitType === 'amounts') {
-          firstSplittingEntries = firstExpense.proportionalSplitting.amounts
-          currentSplittingEntries = e.proportionalSplitting.amounts
+          firstSplittingEntries = firstExpense.proportionalSplitting.amounts.map(a => [a.groupMember, a.amount]).sort()
+          currentSplittingEntries = e.proportionalSplitting.amounts.map(a => [a.groupMember, a.amount]).sort()
         }
         return Object.keys(firstSplittingEntries).length === Object.keys(currentSplittingEntries).length &&
-          Object.entries(currentSplittingEntries).every(entry => firstSplittingEntries[entry[0]] === entry[1])
+          currentSplittingEntries.every((entry, i) => entry[0] === firstSplittingEntries[i][0] &&
+          isNearlyEqual(entry[1], firstSplittingEntries[i][1]))
       }
     }
   },
   created () {
-    this.multiEditMode = this.multiEditInputExpenses.length > 0
-    if (this.multiEditMode) {
+    this.multiEditMode = this.multiEditInputExpenses && this.multiEditInputExpenses.length > 0
+    if (this.multiEditMode) { // Initialize multi-edit mode
       let firstExpense = this.multiEditInputExpenses[0]
-      this.description = this.multiEditInputExpenses.every(e => e.description === firstExpense.description) ? firstExpense.description : null
-      this.amount = this.multiEditInputExpenses.every(e => e.amount === firstExpense.amount) ? firstExpense.amount : null
-      this.payingGroupMember = this.multiEditInputExpenses.every(e => e.payingGroupMember === firstExpense.payingGroupMember) ? firstExpense.payingGroupMember : undefined
-      this.sharingGroupMembers = this.multiEditInputExpenses.every(e => e.sharingGroupMembers === firstExpense.sharingGroupMembers) ? firstExpense.sharingGroupMembers : undefined
+      this.description = this.multiEditInputExpenses.every(e => e.description === firstExpense.description)
+        ? firstExpense.description : null
+      this.amount = this.multiEditInputExpenses.every(e => isNearlyEqual(e.amount, firstExpense.amount))
+        ? firstExpense.amount : null
+      this.payingGroupMember = this.multiEditInputExpenses.every(e =>
+        e.payingGroupMember === firstExpense.payingGroupMember) ? firstExpense.payingGroupMember : undefined
+      let firstExpenseSharingGroupMembers = firstExpense.sharingGroupMembers.sort()
+      this.sharingGroupMembers = this.multiEditInputExpenses.every(e => e.sharingGroupMembers.length ===
+        firstExpenseSharingGroupMembers.length && e.sharingGroupMembers.sort().every((member, index) => member ===
+        firstExpenseSharingGroupMembers[index])) ? firstExpense.sharingGroupMembers : undefined
       this.date = this.multiEditInputExpenses.every(e => e.date === firstExpense.date) ? firstExpense.date : null
       // Only set proportional splitting if it is enabled for all expenses and all have the same `splitType`
-      if (firstExpense.proportionalSplitting && this.multiEditInputExpenses.every(this.hasSameSplittingAsFirstExpense(firstExpense))) {
+      if (firstExpense.proportionalSplitting &&
+          this.multiEditInputExpenses.every(this.hasSameSplittingAsFirstExpense(firstExpense))) {
         this.sharingMembersEnterType = 'split'
         this.splitType = firstExpense.proportionalSplitting.splitType
         if (this.splitType === 'percentages') {
@@ -381,7 +389,10 @@ export default {
 
       // Parent component must ensure multiEditInputExpenses contains only one kind, either direct payments or expenses.
       this.isDirectPayment = firstExpense.isDirectPayment
-    } else if (this.inputExpense) {
+      if (this.isDirectPayment && !this.sharingGroupMembers) {
+        this.sharingGroupMembers = [] // Make sure no render errors due to accessing sharingGroupMembers occur
+      }
+    } else if (this.inputExpense) { // Initialize single-edit mode
       this.description = this.inputExpense.description
       this.amount = this.inputExpense.amount
       this.payingGroupMember = this.inputExpense.payingGroupMember
@@ -405,7 +416,7 @@ export default {
         this.sharingMembersEnterType = this.sharingGroupMembers.length > 0 ? 'select' : 'all'
       }
       this.isDirectPayment = this.inputExpense.isDirectPayment
-    } else {
+    } else { // Otherwise, initialize adding an expense / payment
       this.isDirectPayment = this.addDirectPayment
     }
   },
