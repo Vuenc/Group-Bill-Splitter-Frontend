@@ -43,6 +43,10 @@ export default {
   putExpense (groupEventId, expenseId, expense) {
     return Api().put(`/groupEvents/${groupEventId}/expenses/${expenseId}`, expense, jsonHeaders)
   },
+  putMultipleExpenses (groupEventId, expenseIds, updateFields) {
+    updateFields.expenseIds = expenseIds
+    return Api().put(`/groupEvents/${groupEventId}/expenses`, updateFields, jsonHeaders)
+  },
   deleteGroupMember (groupEventId, groupMemberId) {
     return Api().delete(`/groupEvents/${groupEventId}/members/${groupMemberId}`)
   },

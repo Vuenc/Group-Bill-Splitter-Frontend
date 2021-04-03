@@ -280,9 +280,12 @@ export default {
           confirmationCallback(expense, 'edited')
         }
       } else {
-        if (expense.sharingGroupMembers && expense.sharingGroupMembers.length === 0) {
+        if (this.sharingMembersEnterType === 'all') {
+          expense.sharingGroupMembers = []
+        } else if (this.sharingMembersEnterType === 'split') {
           expense.sharingGroupMembers = undefined
         }
+        Object.keys(expense).forEach(key => (expense[key] !== undefined && expense[key] !== null) || delete expense[key])
         confirmationCallback(expense, 'multi-edited')
       }
     },
@@ -370,10 +373,12 @@ export default {
       this.payingGroupMember = this.multiEditInputExpenses.every(e =>
         e.payingGroupMember === firstExpense.payingGroupMember) ? firstExpense.payingGroupMember : undefined
       let firstExpenseSharingGroupMembers = firstExpense.sharingGroupMembers.sort()
-      this.sharingGroupMembers = this.multiEditInputExpenses.every(e => e.sharingGroupMembers.length ===
-        firstExpenseSharingGroupMembers.length && e.sharingGroupMembers.sort().every((member, index) => member ===
-        firstExpenseSharingGroupMembers[index])) ? firstExpense.sharingGroupMembers : undefined
-      this.date = this.multiEditInputExpenses.every(e => e.date === firstExpense.date) ? firstExpense.date : null
+      this.sharingGroupMembers = this.multiEditInputExpenses.every(e => !e.proportionalSplitting &&
+        e.sharingGroupMembers.length === firstExpenseSharingGroupMembers.length &&
+        e.sharingGroupMembers.sort().every((member, index) => member === firstExpenseSharingGroupMembers[index]))
+        ? firstExpense.sharingGroupMembers : undefined
+      this.date = this.multiEditInputExpenses.every(e => e.date === firstExpense.date)
+        ? moment(firstExpense.date) : null
       // Only set proportional splitting if it is enabled for all expenses and all have the same `splitType`
       if (firstExpense.proportionalSplitting &&
           this.multiEditInputExpenses.every(this.hasSameSplittingAsFirstExpense(firstExpense))) {

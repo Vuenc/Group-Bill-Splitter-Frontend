@@ -529,12 +529,15 @@ export default {
         // Replace edited expense in list and put it on server
         let expenseIndex = this.expenses.findIndex(e => e._id === expense._id)
         if (this.matchesSearch(expense, this.searchString, this.dateRange)) {
+          expense.isSelected = this.expenses[expenseIndex].isSelected
           this.expenses.splice(expenseIndex, 1, expense)
         } else {
+          if (this.expenses[expenseIndex].isSelected) {
+            this.expenseSelectionChanged(this.expenses[expenseIndex], false)
+          }
           this.expenses.splice(expenseIndex, 1)
         }
         GroupBillSplitterService.putExpense(this.$route.params.id, expense._id, expense)
-          .then()
           .catch(err => {
             console.log('Editing expense failed: ' + err)
             this.fetchData()
@@ -544,7 +547,28 @@ export default {
             this.enterExpenseModalVisible = false
           })
       } else if (formType === 'multi-edited') {
-
+        // Update all changed fields locally on each selected expense
+        for (let selectedExpense of this.multiEditDialogExpenses) {
+          for (let key of Object.keys(expense)) {
+            selectedExpense[key] = expense[key]
+          }
+          // If the expense does not meet the search criteria anymore, delete it from currently shown expenses
+          if (!this.matchesSearch(selectedExpense, this.searchString, this.dateRange)) {
+            let expenseIndex = this.expenses.findIndex(e => e._id === selectedExpense._id)
+            this.expenses.splice(expenseIndex, 1)
+          }
+        }
+        // Send changes to server
+        GroupBillSplitterService.putMultipleExpenses(this.$route.params.id,
+          this.multiEditDialogExpenses.map(e => e._id), expense)
+          .catch(err => {
+            console.log('Editing multiple expenses failed: ' + err)
+            this.fetchData()
+          })
+          .finally(() => {
+            this.enterExpenseLoading = false
+            this.enterExpenseModalVisible = false
+          })
       }
     },
     // Methods for handling the edit group members overlay ('Modal')
