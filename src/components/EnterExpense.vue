@@ -282,10 +282,12 @@ export default {
       } else {
         if (this.sharingMembersEnterType === 'all') {
           expense.sharingGroupMembers = []
-        } else if (this.sharingMembersEnterType === 'split') {
+        } else if (this.sharingMembersEnterType === 'split' || !this.sharingMembersEnterType) {
+          // Unset sharingGroupMembers if proportional splitting or no splitting is selected
           expense.sharingGroupMembers = undefined
         }
-        Object.keys(expense).forEach(key => (expense[key] !== undefined && expense[key] !== null) || delete expense[key])
+        // Delete entries that have no entries and should therefore stay unchanged
+        Object.entries(expense).forEach(([key, val]) => val || this.VALID_FALSY_VALUES.has(val) || delete expense[key])
         confirmationCallback(expense, 'multi-edited')
       }
     },
@@ -302,8 +304,6 @@ export default {
     // Implements search function on select element
     matchesGroupMember (searchString, element) {
       let id = element.data.key.substring('payingMember'.length)
-      console.log(element.data.key)
-      console.log(this.groupMembers)
       return this.groupMembers[id].name.includes(searchString)
     },
     changeSplitType () {
@@ -350,19 +350,28 @@ export default {
         }
         let firstSplittingEntries, currentSplittingEntries
         if (e.proportionalSplitting.splitType === 'percentages') {
-          firstSplittingEntries = firstExpense.proportionalSplitting.percentages.map(p => [p.groupMember, p.percentage]).sort()
-          currentSplittingEntries = e.proportionalSplitting.percentages.map(p => [p.groupMember, p.percentage]).sort()
+          firstSplittingEntries = Object.fromEntries(firstExpense.proportionalSplitting.percentages
+            .map(p => [p.groupMember, p.percentage]))
+          currentSplittingEntries = Object.fromEntries(e.proportionalSplitting.percentages
+            .map(p => [p.groupMember, p.percentage]))
         } else if (e.proportionalSplitting.splitType === 'amounts') {
-          firstSplittingEntries = firstExpense.proportionalSplitting.amounts.map(a => [a.groupMember, a.amount]).sort()
-          currentSplittingEntries = e.proportionalSplitting.amounts.map(a => [a.groupMember, a.amount]).sort()
+          firstSplittingEntries = Object.fromEntries(firstExpense.proportionalSplitting.amounts
+            .map(a => [a.groupMember, a.amount]))
+          currentSplittingEntries = Object.fromEntries(e.proportionalSplitting.amounts
+            .map(a => [a.groupMember, a.amount]))
         }
-        return Object.keys(firstSplittingEntries).length === Object.keys(currentSplittingEntries).length &&
-          currentSplittingEntries.every((entry, i) => entry[0] === firstSplittingEntries[i][0] &&
-          isNearlyEqual(entry[1], firstSplittingEntries[i][1]))
+        // Check if all non-zero splitting entries of current expense have equal counterpart in first expense
+        // This works without an additional length equality check because of the "sums to 1/sums to amount" requirement
+        return Object.entries(currentSplittingEntries).every(([groupMember, val]) =>
+          isNearlyEqual(val, 0) || isNearlyEqual(val, firstSplittingEntries[groupMember]))
       }
     }
   },
   created () {
+    // Constants
+    // valid falsy values = falsy values that are considered valid as inputs of the expense form
+    this.VALID_FALSY_VALUES = new Set([true, false, 0])
+
     this.multiEditMode = this.multiEditInputExpenses && this.multiEditInputExpenses.length > 0
     if (this.multiEditMode) { // Initialize multi-edit mode
       let firstExpense = this.multiEditInputExpenses[0]
@@ -388,10 +397,14 @@ export default {
           for (let p of firstExpense.proportionalSplitting.percentages) {
             this.splitPercentages[p.groupMember] = p.percentage * 100
           }
+          // Set remaining values to 0
+          Object.entries(this.splitPercentages).forEach(([key, val]) => { this.splitPercentages[key] = val || 0 })
         } else if (this.splitType === 'amounts') {
           for (let a of firstExpense.proportionalSplitting.amounts) {
             this.splitAmounts[a.groupMember] = a.amount
           }
+          // Set remaining values to 0
+          Object.entries(this.splitAmounts).forEach(([key, val]) => { this.splitAmounts[key] = val || 0 })
         }
       } else if (!firstExpense.proportionalSplitting && this.sharingGroupMembers) {
         this.sharingMembersEnterType = this.sharingGroupMembers.length > 0 ? 'select' : 'all'
@@ -419,10 +432,14 @@ export default {
           for (let p of this.inputExpense.proportionalSplitting.percentages) {
             this.splitPercentages[p.groupMember] = p.percentage * 100
           }
+          // Set remaining values to 0
+          Object.entries(this.splitPercentages).forEach(([key, val]) => { this.splitPercentages[key] = val || 0 })
         } else if (this.splitType === 'amounts') {
           for (let a of this.inputExpense.proportionalSplitting.amounts) {
             this.splitAmounts[a.groupMember] = a.amount
           }
+          // Set remaining values to 0
+          Object.entries(this.splitAmounts).forEach(([key, val]) => { this.splitAmounts[key] = val || 0 })
         }
       } else {
         this.sharingMembersEnterType = this.sharingGroupMembers.length > 0 ? 'select' : 'all'
