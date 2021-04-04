@@ -79,16 +79,22 @@
                   </a-range-picker>
                 </div>
               </div>
-              <div v-if="selectedExpenses.length > 0" style="margin-bottom: 10px">
+              <div style="margin-bottom: 10px">
+                <a-checkbox @change="allSelectedChanged($event.target.checked)"
+                            :checked="allExpensesSelected" :indeterminate="someButNotAllExpensesSelected"
+                            style="font-size: 16px; padding-bottom: 5px; padding-top: 5px"
+                >Select all</a-checkbox>
+                <span v-if="selectedExpenses.length > 0" >
                 <span style="font-weight: bold; font-size: 16px">
-                    {{selectedExpenses.length}} entries selected.
+                    {{selectedExpenses.length}} entr{{selectedExpenses.length === 1 ? 'y' : 'ies'}} selected.
                 </span>
                 <a-button :disabled="selectedExpenses.length < 2" size="default" shape="circle" icon='edit'
                           @click="editMultipleExpenses(selectedExpenses)"/>
                 <a-popconfirm title="Delete all selected expenses?" @confirm="deleteMultipleExpenses(selectedExpenses)">
-                  <a-icon slot="icon" type="question-circle-o" style="color: red" />
+                  <a-icon slot="icon" type="question-circle" style="color: red" />
                   <a-button :disabled="selectedExpenses.length < 2" size="default" shape="circle" icon='delete'/>
                 </a-popconfirm>
+                </span>
               </div>
               <a-table id="expenses-table"
                        :columns="columns"
@@ -97,7 +103,7 @@
                        :pagination="expenses.length > 20 ? {pageSize: 20} : false"
                        v-if="expenses.length > 0 || expensesLoading"
                        :loading="expensesLoading"
-                       :rowClassName="(record, id) => record.isDirectPayment ? 'table-row-payment' : 'table-row-expense'"
+                       :rowClassName="record => record.isSelected ? 'table-row-selected' : 'table-row-not-selected'"
               >
                 <template slot="amount" slot-scope="amount">
                     <div class="rightaligned currency-label" style="white-space: nowrap">
@@ -105,10 +111,14 @@
                     </div>
                 </template>
                 <template slot="description" slot-scope="record">
-                  <div @click="editExpense(record)">
-                    <div style="display: flex; justify-content: stretch; cursor: pointer">
+                  <div @click="editExpense(record)" style="cursor: pointer; display: flex; align-items: center">
+                    <a-tooltip v-if="record.isDirectPayment" placement="top" :title="`Direct payment from
+                      ${groupMembers[record.payingGroupMember].name} to ${groupMembers[record.sharingGroupMembers[0]].name}`">
+                    <a-icon type="arrow-right" style="color: #40a9ff; font-size: 16px; margin-right: 5px"  />
+                    </a-tooltip>
+                    <span style="display: inline-block; justify-content: stretch">
                       {{record.description}}
-                    </div>
+                    </span>
                   </div>
                 </template>
                 <template slot="payingGroupMember" slot-scope="payingGroupMember">
@@ -145,7 +155,7 @@
                   <div style="white-space: nowrap">
                     <a-button size="small" shape="circle" icon='edit' @click="editExpense(record)"/>
                     <a-popconfirm title="Delete this expense?" @confirm="deleteExpense(record)">
-                      <a-icon slot="icon" type="question-circle-o" style="color: red" />
+                      <a-icon slot="icon" type="question-circle" style="color: red" />
                       <a-button size="small" shape="circle" icon='delete'/>
                     </a-popconfirm>
                   </div>
@@ -671,6 +681,21 @@ export default {
           this.selectedExpenses.splice(expenseIndex, 1)
         }
       }
+    },
+    allSelectedChanged (isChecked) {
+      if (isChecked) {
+        // Select all
+        for (let expense of this.expenses) {
+          expense.isSelected = true
+        }
+        this.selectedExpenses = [...this.expenses]
+      } else {
+        // Deselect all
+        for (let expense of this.expenses) {
+          expense.isSelected = false
+        }
+        this.selectedExpenses = []
+      }
     }
   },
   created () {
@@ -703,6 +728,12 @@ export default {
   computed: {
     groupEventURL () {
       return `https://groupbillsplitter.herokuapp.com/#/groupEvents/${this.groupEvent._id}`
+    },
+    allExpensesSelected () {
+      return this.selectedExpenses.length === this.expenses.length && this.expenses.length > 0
+    },
+    someButNotAllExpensesSelected () {
+      return this.selectedExpenses.length > 0 && this.selectedExpenses.length < this.expenses.length
     }
   }
 }
@@ -750,10 +781,10 @@ export default {
     border: #bae7ff solid 1px;
     color: #1890ff
   }
-  .table-row-expense {
+  .table-row-not-selected {
      background-color: #ffffff;
    }
-  .table-row-payment {
-    background-color: #e5f2ff;
+  .table-row-selected {
+    background-color: #e6f3ff;
   }
 </style>
