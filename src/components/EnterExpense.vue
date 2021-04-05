@@ -294,10 +294,14 @@ export default {
       if (this.sharingMembersEnterType === 'split') {
         if (this.splitType === 'percentages') {
           expense.proportionalSplitting = { splitType: this.splitType,
-            percentages: Object.entries(this.splitPercentages).map(p => { return {groupMember: p[0], percentage: p[1] / 100} }) }
+            percentages: Object.entries(this.splitPercentages)
+              .filter(p => p[1] > 0)
+              .map(p => { return {groupMember: p[0], percentage: p[1] / 100} }) }
         } else if (this.splitType === 'amounts') {
           expense.proportionalSplitting = { splitType: this.splitType,
-            amounts: Object.entries(this.splitAmounts).map(a => { return {groupMember: a[0], amount: a[1]} }) }
+            amounts: Object.entries(this.splitAmounts)
+              .filter(a => a[1] > 0)
+              .map(a => { return {groupMember: a[0], amount: a[1]} }) }
         }
       }
       if (!this.multiEditMode) {

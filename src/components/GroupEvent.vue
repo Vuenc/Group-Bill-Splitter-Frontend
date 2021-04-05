@@ -546,8 +546,14 @@ export default {
         // Replace edited expense in list and put it on server
         let expenseIndex = this.expenses.findIndex(e => e._id === expense._id)
         if (this.matchesSearch(expense, this.searchString, this.dateRange)) {
-          expense.isSelected = this.expenses[expenseIndex].isSelected
-          this.expenses.splice(expenseIndex, 1, expense)
+          if (!this.expenses[expenseIndex].isSelected) {
+            this.expenses.splice(expenseIndex, 1, expense)
+          } else {
+            this.expenseSelectionChanged(this.expenses[expenseIndex], false)
+            this.expenses.splice(expenseIndex, 1, expense)
+            expense.isSelected = true
+            this.expenseSelectionChanged(expense, true)
+          }
         } else {
           if (this.expenses[expenseIndex].isSelected) {
             this.expenseSelectionChanged(this.expenses[expenseIndex], false)
