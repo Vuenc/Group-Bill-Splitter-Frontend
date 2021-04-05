@@ -333,24 +333,28 @@ export default {
           title: 'Description',
           // sorter: true,
           width: '30%',
-          scopedSlots: { customRender: 'description' }
+          scopedSlots: { customRender: 'description' },
+          key: 'actionsDescription'
         },
         {
           title: 'Amount',
           sorter: (a, b) => a.amount - b.amount,
           width: '12%',
-          scopedSlots: { customRender: 'amount' }
+          scopedSlots: { customRender: 'amount' },
+          key: 'actionsAmount'
         },
         {
           title: 'Paid By',
           // sorter: true,
           width: '15%',
-          scopedSlots: { customRender: 'payingGroupMember' }
+          scopedSlots: { customRender: 'payingGroupMember' },
+          key: 'paidByColumn'
         },
         {
           title: 'Shared By',
           width: '35%',
-          scopedSlots: { customRender: 'sharingGroupMembers' }
+          scopedSlots: { customRender: 'sharingGroupMembers' },
+          key: 'sharedByColumn'
         },
         {
           title: 'Date',
@@ -359,12 +363,14 @@ export default {
             return moment(a.date).isAfter(moment(b.date)) ? 1 : -1
           },
           defaultSortOrder: 'descend',
-          scopedSlots: { customRender: 'date' }
+          scopedSlots: { customRender: 'date' },
+          key: 'dateColumn'
         },
         {
           title: 'Actions',
           width: '15%',
-          scopedSlots: {customRender: 'actions'}
+          scopedSlots: {customRender: 'actions'},
+          key: 'actionsColumn'
         }]
     }
   },
