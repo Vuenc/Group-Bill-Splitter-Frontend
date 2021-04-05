@@ -98,71 +98,76 @@
               </div>
               <a-table id="expenses-table"
                        :columns="columns"
-                       :rowKey="record => `tableRow${record._id}`"
+                       :rowKey="expense => `tableRow${expense._id}`"
                        :dataSource="expenses"
                        :pagination="expenses.length > 20 ? {pageSize: 20} : false"
                        v-if="expenses.length > 0 || expensesLoading"
                        :loading="expensesLoading"
-                       :rowClassName="record => record.isSelected ? 'table-row-selected' : 'table-row-not-selected'"
+                       :rowClassName="expense => expense.isSelected ? 'table-row-selected' : 'table-row-not-selected'"
               >
-                <template slot="amount" slot-scope="amount">
-                    <div class="rightaligned currency-label" style="white-space: nowrap">
-                      {{groupEvent.currencyPrefix}} {{amount | currency}}
-                    </div>
-                </template>
-                <template slot="description" slot-scope="record">
-                  <div @click="editExpense(record)" style="cursor: pointer; display: flex; align-items: center">
-                    <a-tooltip v-if="record.isDirectPayment" placement="top" :title="`Direct payment from
-                      ${groupMembers[record.payingGroupMember].name} to ${groupMembers[record.sharingGroupMembers[0]].name}`">
-                    <a-icon type="arrow-right" style="color: #40a9ff; font-size: 16px; margin-right: 5px"  />
-                    </a-tooltip>
+                <template slot="description" slot-scope="expense">
+                  <div @click="editExpense(expense, 'description')"
+                       style="cursor: pointer;display: flex; align-items: center; justify-content: space-between">
                     <span style="display: inline-block; justify-content: stretch">
-                      {{record.description}}
+                      {{expense.description}}
                     </span>
+                    <a-tooltip v-if="expense.isDirectPayment" placement="top" :title="`Direct payment from
+                      ${groupMembers[expense.payingGroupMember].name} to ${groupMembers[expense.sharingGroupMembers[0]].name}`">
+                      <a-icon type="arrow-right" style="color: #40a9ff; font-size: 18px"  />
+                    </a-tooltip>
                   </div>
                 </template>
-                <template slot="payingGroupMember" slot-scope="payingGroupMember">
-                  <div>
-                    {{groupMembers[payingGroupMember].name}}
+                <template slot="amount" slot-scope="expense">
+                  <div @click="editExpense(expense, 'amount')"
+                       class="rightaligned currency-label" style="white-space: nowrap; cursor: pointer">
+                    {{groupEvent.currencyPrefix}} {{expense.amount | currency}}
                   </div>
                 </template>
-                <template slot="sharingGroupMembers" slot-scope="record">
-                  <div v-if="record.sharingGroupMembers.length > 0">
-                    {{record.sharingGroupMembers.map(m => groupMembers[m].name).reduce((a, b) => a + ", " + b)}}
-                  </div>
-                  <div v-else-if="!record.proportionalSplitting"><i>Everyone</i></div>
-                  <div v-else-if="record.proportionalSplitting.splitType === 'percentages'">
-                    {{Object.values(record.proportionalSplitting.percentages)
-                    .filter(p => p.percentage > 0)
-                    .map(p => `${groupMembers[p.groupMember].name} (${(p.percentage*100)
-                      .toLocaleString('en', {maximumFractionDigits: 2})}%)`)
-                    .reduce((a, b) => a + ", " + b)}}
-                  </div>
-                  <div v-else-if="record.proportionalSplitting.splitType === 'amounts'">
-                    {{Object.values(record.proportionalSplitting.amounts)
-                    .filter(a => a.amount > 0)
-                    .map(a => `${groupMembers[a.groupMember].name} (${a.amount
-                      .toLocaleString('en', {maximumFractionDigits: 2})}${groupEvent.currencyPrefix})`)
-                    .reduce((a, b) => a + ", " + b)}}
+                <template slot="payingGroupMember" slot-scope="expense">
+                  <div @click="editExpense(expense, 'payingGroupMember')" style="cursor: pointer">
+                    {{groupMembers[expense.payingGroupMember].name}}
                   </div>
                 </template>
-                <template slot="date" slot-scope="date">
-                  <div>
-                    {{new Date(date) | dateFormat('DD.MM.YYYY')}}
+                <template slot="sharingGroupMembers" slot-scope="expense">
+                  <div @click="editExpense(expense, !expense.isDirectPayment ? 'splitting' : 'paidToGroupMember')"
+                       style="cursor: pointer">
+                    <div v-if="expense.sharingGroupMembers.length > 0">
+                      {{expense.sharingGroupMembers.map(m => groupMembers[m].name).reduce((a, b) => a + ", " + b)}}
+                    </div>
+                    <div v-else-if="!expense.proportionalSplitting"><i>Everyone</i></div>
+                    <div v-else-if="expense.proportionalSplitting.splitType === 'percentages'">
+                      {{Object.values(expense.proportionalSplitting.percentages)
+                      .filter(p => p.percentage > 0)
+                      .map(p => `${groupMembers[p.groupMember].name} (${(p.percentage*100)
+                        .toLocaleString('en', {maximumFractionDigits: 2})}%)`)
+                      .reduce((a, b) => a + ", " + b)}}
+                    </div>
+                    <div v-else-if="expense.proportionalSplitting.splitType === 'amounts'">
+                      {{Object.values(expense.proportionalSplitting.amounts)
+                      .filter(a => a.amount > 0)
+                      .map(a => `${groupMembers[a.groupMember].name} (${a.amount
+                        .toLocaleString('en', {maximumFractionDigits: 2})}${groupEvent.currencyPrefix})`)
+                      .reduce((a, b) => a + ", " + b)}}
+                    </div>
                   </div>
                 </template>
-                <template slot="actions" slot-scope="record">
+                <template slot="date" slot-scope="expense">
+                  <div @click="editExpense(expense, 'date')" style="cursor: pointer">
+                    {{new Date(expense.date) | dateFormat('DD.MM.YYYY')}}
+                  </div>
+                </template>
+                <template slot="actions" slot-scope="expense">
                   <div style="white-space: nowrap">
-                    <a-button size="small" shape="circle" icon='edit' @click="editExpense(record)"/>
-                    <a-popconfirm title="Delete this expense?" @confirm="deleteExpense(record)">
+                    <!-- <a-button size="small" shape="circle" icon='edit' @click="editExpense(expense)"/> -->
+                    <a-icon type="edit" @click="editExpense(expense)" style="margin-right: 3px"/>
+                    <a-popconfirm title="Delete this expense?" @confirm="deleteExpense(expense)">
                       <a-icon slot="icon" type="question-circle" style="color: red" />
-                      <a-button size="small" shape="circle" icon='delete'/>
+                      <!-- <a-button size="small" shape="circle" icon='delete'/> -->
+                      <a-icon type="delete" style="cursor: pointer"/>
                     </a-popconfirm>
+                    <a-checkbox @change="expenseSelectionChanged(expense, $event.target.checked)"
+                                v-model="expense.isSelected" style="margin-left: 10px"/>
                   </div>
-                </template>
-                <template slot="select" slot-scope="expense">
-                  <a-checkbox @change="expenseSelectionChanged(expense, $event.target.checked)" v-model="expense.isSelected">
-                  </a-checkbox>
                 </template>
               </a-table>
               <label v-else-if="searchTimeout || searchString || dateRange.length > 0" style="font-family: Cantarell; font-size: 110%">
@@ -235,6 +240,7 @@
                         :add-direct-payment="currentDialogExpenseIsDirectPayment"
                         :multiEditInputExpenses="multiEditDialogExpenses"
                         :currencyPrefix="groupEvent.currencyPrefix"
+                        :focusInput="enterExpenseFocusAttribute"
                         @submit="expenseModalOkPressed"
       >
       </enter-expense-form>
@@ -320,6 +326,8 @@ export default {
       dateRange: [],
       selectedExpenses: [], // new Set(), TODO use Set again (have to solve problems with Vue reactivity + Sets first)
       multiEditDialogExpenses: [], // becomes a copy of selectedExpenses in multi-edit mode, null in single-edit mode
+      // valid values: 'description', 'amount', 'payingGroupMember', 'paidToGroupMember, 'splitting', 'date', null
+      enterExpenseFocusAttribute: '',
       columns: [
         {
           title: 'Description',
@@ -329,14 +337,12 @@ export default {
         },
         {
           title: 'Amount',
-          dataIndex: 'amount',
           sorter: (a, b) => a.amount - b.amount,
           width: '12%',
           scopedSlots: { customRender: 'amount' }
         },
         {
           title: 'Paid By',
-          dataIndex: 'payingGroupMember',
           // sorter: true,
           width: '15%',
           scopedSlots: { customRender: 'payingGroupMember' }
@@ -348,7 +354,6 @@ export default {
         },
         {
           title: 'Date',
-          dataIndex: 'date',
           min_width: '20%',
           sorter: (a, b) => {
             return moment(a.date).isAfter(moment(b.date)) ? 1 : -1
@@ -358,13 +363,8 @@ export default {
         },
         {
           title: 'Actions',
-          width: '10%',
+          width: '15%',
           scopedSlots: {customRender: 'actions'}
-        },
-        {
-          title: 'Select',
-          minWidth: '10%',
-          scopedSlots: {customRender: 'select'}
         }]
     }
   },
@@ -474,10 +474,11 @@ export default {
       this.multiEditDialogExpenses = null
       this.enterExpenseModalVisible = true
     },
-    editExpense (expense) {
+    editExpense (expense, focusAttribute = 'description') {
       this.currentDialogExpense = expense
       this.currentDialogExpenseIsDirectPayment = expense.isDirectPayment
       this.multiEditDialogExpenses = null
+      this.enterExpenseFocusAttribute = focusAttribute
       this.enterExpenseModalVisible = true
     },
     deleteExpense (expense) {
@@ -494,7 +495,6 @@ export default {
         })
     },
     editMultipleExpenses (expenses) {
-      // TODO avoid editing direct payments + expenses together
       if (!expenses.every(e => e.isDirectPayment === expenses[0].isDirectPayment)) {
         this.$warning({title: 'Expenses and direct payments selected!',
           content: 'You cannot edit expenses and direct payments at the same time. Please select only ' +
@@ -503,6 +503,7 @@ export default {
       }
       this.currentDialogExpense = null
       this.multiEditDialogExpenses = expenses
+      this.enterExpenseFocusAttribute = null
       this.enterExpenseModalVisible = true
     },
     deleteMultipleExpenses (expenses) {

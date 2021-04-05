@@ -3,7 +3,8 @@
     <a-form-item :label="'Description' + (!multiEditMode ? '' :
       (description ? '' : ' (different values)'))"
                  :class="(!multiEditMode || description) ? '' : 'leave-unchanged-form-item'">
-      <a-input ref="firstInput" v-model="description" :placeholder="!multiEditMode ? 'What was paid for?' : '(leave unchanged)'" :class="{'input-error': $v.description.$error}"></a-input>
+      <a-input ref="descriptionInput" v-model="description" :placeholder="!multiEditMode ? 'What was paid for?' : '(leave unchanged)'"
+               :class="{'input-error': $v.description.$error}"></a-input>
     </a-form-item>
     <a-form-item :label="'Amount' + (!multiEditMode ? '' :
       (amount ? '' : ' (different values)'))"
@@ -11,7 +12,8 @@
       <div>
         <a-row type="flex" justify="space-between">
           <a-col :span=9  class="somemarginright">
-            <a-input style="min-width: 100%"
+            <a-input ref="amountInput"
+                     style="min-width: 100%"
                      v-model="amount"
                      :placeholder="!multiEditMode ? 'How much?' : '(leave unchanged)'"
                      :class="{'input-error': $v.amount.$error}"
@@ -24,13 +26,14 @@
                 + ((!multiEditMode || payingGroupMember) ? '' : ' leave-unchanged-label')">Paid by:</label>
           </a-col>
           <a-col :span=10>
-            <a-select ref="selectPayingGroupMemberElement"
+            <a-select ref="payingGroupMemberInput"
                       :placeholder="!multiEditMode ? 'Who paid?' : '(leave unchanged)'"
                       style="min-width: 100%"
                       v-model="payingGroupMember"
                       :class="{'input-error': $v.payingGroupMember.$error}"
                       showSearch
                       :filterOption="matchesGroupMember"
+                      :showAction="['focus', 'click']"
             >
               <a-select-option v-for="member in groupMembers"
                                :key="`payingMember${member._id}`"
@@ -49,7 +52,7 @@
         <a-radio-group v-model="sharingMembersEnterType">
           <a-radio value="all">All group members (current and future members)</a-radio>
           <a-radio value="select" style="margin-top: 5px; margin-bottom: 5px" @click="focusSharedMemberSelection">Split evenly between:</a-radio>
-          <a-select ref="selectSharingGroupMembersElement"
+          <a-select ref="sharingGroupMembersInput"
                     v-model="sharingGroupMembers"
                     mode="multiple"
                     style="width: 100%; margin-bottom: 10px"
@@ -136,13 +139,14 @@
               + ((!multiEditMode || sharingGroupMembers.length > 0) ? '' : ' leave-unchanged-label')">Paid to:</label>
           </a-col>
           <a-col :span=10>
-            <a-select ref="selectPayingGroupMemberElement"
+            <a-select ref="paidToGroupMemberInput"
                       :placeholder="!multiEditMode ? 'To who?' : '(leave unchanged)'"
                       style="min-width: 100%"
                       v-model="sharingGroupMembers[0]"
                       :class="{'input-error': $v.sharingGroupMembers.$error}"
                       showSearch
                       :filterOption="matchesGroupMember"
+                      :showAction="['focus', 'click']"
             >
               <a-select-option v-for="member in groupMembers"
                                :key="`receivingMember${member._id}`"
@@ -158,7 +162,11 @@
     <a-form-item :label="'Date' + (!multiEditMode ? '' :
                     (date ? '' : ' (different values)'))"
                  :class="(!multiEditMode || date) ? '' : 'leave-unchanged-form-item'">
-      <a-date-picker v-model=date :placeholder="!multiEditMode ? 'Select Date...' : '(leave unchanged)'"></a-date-picker>
+      <a-date-picker ref="dateInput"
+                     v-model=date
+                     :placeholder="!multiEditMode ? 'Select Date...' : '(leave unchanged)'"
+                     :showAction="['focus', 'click']"
+      />
       <a-button html-type="submit" style="visibility: hidden"/>
     </a-form-item>
 
@@ -228,23 +236,43 @@ export default {
       multiEditMode: false
     }
   },
-  props: ['groupMembers', 'inputExpense', 'currencyPrefix', 'addDirectPayment', 'multiEditInputExpenses'],
+  props: ['groupMembers', 'inputExpense', 'currencyPrefix', 'addDirectPayment', 'multiEditInputExpenses', 'focusInput'],
   mounted () {
-    this.$refs.firstInput.focus()
+    // focusInput can be: 'description', 'amount', 'payingGroupMember', 'paidToGroupMember, 'splitting', 'date', null
+    this.$nextTick(() => {
+      let focusComponent = this.$refs[`${this.focusInput}Input`]
+      if (this.focusInput === 'splitting') {
+        if (this.sharingGroupMembers && this.sharingGroupMembers.length > 0) {
+          // Focus sharing group members list for 'select' splitting
+          this.$refs.sharingGroupMembersInput.focus()
+        } else {
+          // Focus proportional splitting input for 'percentages'/'amounts' splitting or do nothing for 'all' splitting
+          this.focusProportionalSplittingInput()
+        }
+      } else if (this.focusInput === 'payingGroupMember' || this.focusInput === 'paidToGroupMember') {
+        setTimeout(() => focusComponent.focus(), 150)
+      } else if (this.focusInput === 'date') {
+        focusComponent.focus()
+        // Hacky way to scroll the date element into focus after the modal animation which I don't have control over
+        for (let timeout of [100, 150]) {
+          setTimeout(() => focusComponent.$el.scrollIntoView({behavior: 'smooth', block: 'start'}), timeout)
+        }
+      } else if (this.focusInput) {
+        focusComponent.focus()
+        focusComponent.select()
+      }
+    })
   },
   methods: {
     // Focus the 'sharing members' component on press of the radio button
     focusSharedMemberSelection () {
-      this.$refs.selectSharingGroupMembersElement.focus()
+      this.$refs.sharingGroupMembersInput.focus()
     },
     // Focus the first number input on selection of proportional splitting
     focusProportionalSplittingInput () {
       let firstMemberId = Object.keys(this.groupMembers)[0]
       if (this.splitType === 'percentages') {
-        this.$nextTick(() => {
-          let firstInput = this.$refs['percentageInput' + firstMemberId][0]
-          firstInput.focus()
-        })
+        this.$nextTick(() => this.$refs['percentageInput' + firstMemberId][0].focus())
       } else if (this.splitType === 'amounts') {
         this.$nextTick(() => this.$refs['amountInput' + firstMemberId][0].focus())
       }
