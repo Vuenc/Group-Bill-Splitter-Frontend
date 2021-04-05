@@ -575,6 +575,13 @@ export default {
           for (let key of Object.keys(expense)) {
             selectedExpense[key] = expense[key]
           }
+          // manually fix conflicting `sharingGroupMembers`/`proportionalSplitting` values
+          if (expense.proportionalSplitting) {
+            selectedExpense.sharingGroupMembers = []
+          } else if (expense.sharingGroupMembers) {
+            selectedExpense.proportionalSplitting = undefined
+          }
+
           // If the expense does not meet the search criteria anymore, delete it from currently shown expenses
           if (!this.matchesSearch(selectedExpense, this.searchString, this.dateRange)) {
             let expenseIndex = this.expenses.findIndex(e => e._id === selectedExpense._id)

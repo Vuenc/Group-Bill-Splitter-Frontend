@@ -502,7 +502,8 @@ export default {
         requiredIf: requiredIf(vue => !vue.multiEditMode)
       },
       amount: {
-        requiredIf: requiredIf(vue => !vue.multiEditMode),
+        requiredIf: requiredIf(vue => !vue.multiEditMode ||
+          (vue.sharingMembersEnterType === 'split' && vue.splitType === 'amounts')),
         decimal
       },
       payingGroupMember: {
