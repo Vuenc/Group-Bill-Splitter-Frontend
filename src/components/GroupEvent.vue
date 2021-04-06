@@ -88,12 +88,13 @@
                 <span style="font-weight: bold; font-size: 16px">
                     {{selectedExpenses.length}} entr{{selectedExpenses.length === 1 ? 'y' : 'ies'}} selected.
                 </span>
-                <a-button :disabled="selectedExpenses.length < 2" size="default" shape="circle" icon='edit'
-                          @click="editMultipleExpenses(selectedExpenses)"/>
-                <a-popconfirm title="Delete all selected expenses?" @confirm="deleteMultipleExpenses(selectedExpenses)">
-                  <a-icon slot="icon" type="question-circle" style="color: red" />
-                  <a-button :disabled="selectedExpenses.length < 2" size="default" shape="circle" icon='delete'/>
-                </a-popconfirm>
+                  <a-button :disabled="selectedExpenses.length < 2" size="default" shape="circle" icon='edit'
+                            @click="editMultipleExpenses(selectedExpenses)"/>
+                  <a-popconfirm title="Delete all selected expenses?" @confirm="deleteMultipleExpenses(selectedExpenses)">
+                    <a-icon slot="icon" type="question-circle" style="color: red" />
+                    <a-button :disabled="selectedExpenses.length < 2" size="default" shape="circle" icon='delete'/>
+                  </a-popconfirm>
+                  <a-button shape="circle" icon="download" @click="downloadExpensesCsv(selectedExpenses)"/>
                 </span>
               </div>
               <a-table id="expenses-table"
@@ -220,6 +221,22 @@
               </a-tooltip>
             </div>
           </a-tab-pane>
+          <a-tab-pane tab="Export" key="export" style="font-family: Cantarell">
+            <h2>Export Group Event</h2>
+            <a-button size="large" type="primary"
+                      :enabled="this.expenses && this.expenses.length > 0"
+                      @click="downloadExpensesCsv(expenses)"
+            >Export as CSV</a-button>
+            <p>Export all expenses to a CSV file. CSV files can be opened in Excel, Libre Office Calc and
+              similar programs. Use this option if you want the data in a human-readable format.</p>
+            <a-button size="large" type="primary"
+                      :enabled="this.expenses"
+                      @click="downloadRawData"
+            >Export raw data</a-button>
+            <p>Export the raw data of this group event in JSON format. Can be used to backup the data and import it
+              again on this site. Use this option if you want to backup the data and you
+              do not need a human-readable format.</p>
+          </a-tab-pane>
         </a-tabs>
       </div>
     </div>
@@ -276,6 +293,7 @@
       > <!-- maxListHeight="500px" -->
       </enter-group-event-form>
     </a-modal>
+    <a ref="invisibleDownloadLink" display="none" />
   </div>
 </template>
 
@@ -292,6 +310,7 @@ import EnterExpense from '@/components/EnterExpense'
 import GroupMembers from '@/components/GroupMembers'
 import EnterGroupEvent from '@/components/EnterGroupEvent'
 import GroupBillSplitterService from '@/services/groupbillsplitterservice'
+import CsvExportExpenses from '@/services/csvExportExpenses'
 
 let gravatar = require('gravatar')
 
@@ -716,6 +735,28 @@ export default {
         }
         this.selectedExpenses = []
       }
+    },
+    downloadStringAsFile (string, fileName, fileType) {
+      let blob = new Blob([string], { type: fileType })
+
+      // Credits: https://gist.github.com/danallison/3ec9d5314788b337b682
+      let a = this.$refs.invisibleDownloadLink
+      a.download = fileName
+      a.href = URL.createObjectURL(blob)
+      a.dataset.downloadurl = [fileType, a.download, a.href].join(':')
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(a.href), 1500)
+    },
+    downloadExpensesCsv (expenses) {
+      let csv = CsvExportExpenses.expensesToCsv(expenses, this.groupMembers, this.groupEvent.currencyPrefix)
+      this.downloadStringAsFile(csv, `${this.groupEvent.name}.csv`, 'text/csv')
+    },
+    downloadRawData () {
+      GroupBillSplitterService.fetchExpenses(this.$route.params.id).then(expensesRes => {
+        let rawData = {groupEvent: this.groupEvent, groupMembers: this.groupMembers, expenses: expensesRes.data}
+        let jsonString = JSON.stringify(rawData)
+        this.downloadStringAsFile(jsonString, `${this.groupEvent.name}.json`, 'application/json')
+      })
     }
   },
   created () {
