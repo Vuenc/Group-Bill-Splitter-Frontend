@@ -1,7 +1,6 @@
 <template>
   <a-form @submit="$emit('submit')">
     <a-list :style="`max-height: ${maxListHeight}; overflow-y: auto;`">
-      <resize-observer @notify="listResized"/>
       <a-list-item v-for="(v, index) in $v.groupMembers.$each.$iter" :key="v.member.listId">
         <div style="white-space: nowrap; width: 100%">
           <a-col>
@@ -110,7 +109,7 @@ export default {
           email: ''
         }
       })
-      this.memberAdded = true
+      this.focusNewMemberInput()
     },
     // Try to delete a member (API method can fail if there are dependencies of the member)
     deleteMember (member) {
@@ -164,13 +163,13 @@ export default {
         })
     },
     // Focus on the new input element once a new member is added
-    listResized () {
-      if (this.memberAdded) {
+    focusNewMemberInput () {
+      console.log('triggered')
+      this.$nextTick(() => {
         let newInput = this.$refs['memberinput-' + (this.groupMembers.length - 1)][0].$el
         newInput.scrollIntoView()
         newInput.focus()
-        this.memberAdded = false
-      }
+      })
     }
   },
   props: ['inputGroupMembers', 'inputGroupMembersExist', 'groupEventId', 'maxListHeight', 'loading'],

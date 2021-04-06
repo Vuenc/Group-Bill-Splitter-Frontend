@@ -70,6 +70,7 @@
                   <a-input placeholder="Search for expenses..."
                            v-model="searchString"
                            :disabled="expenses.length === 0 && !searchString"
+                           allow-clear
                   ></a-input>
                 </div>
                 <div style="display: flex; width: 250px; flex-direction: column; justify-content: center">
@@ -491,12 +492,14 @@ export default {
       this.currentDialogExpense = null
       this.currentDialogExpenseIsDirectPayment = false
       this.multiEditDialogExpenses = null
+      this.enterExpenseFocusAttribute = 'description'
       this.enterExpenseModalVisible = true
     },
     addPayment () {
       this.currentDialogExpense = null
       this.currentDialogExpenseIsDirectPayment = true
       this.multiEditDialogExpenses = null
+      this.enterExpenseFocusAttribute = 'description'
       this.enterExpenseModalVisible = true
     },
     editExpense (expense, focusAttribute = 'description') {
