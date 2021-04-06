@@ -244,21 +244,21 @@
     <a-modal ref="enterExpenseModal"
              v-model="enterExpenseModalVisible"
              :destroyOnClose="true"
-             :title="(!multiEditDialogExpenses || multiEditDialogExpenses.length == 0) ?
-                `${currentDialogExpense ? 'Edit' : 'Add'} ${
-                !currentDialogExpenseIsDirectPayment ? 'Expense' : 'Payment'}`
-                : `Edit ${multiEditDialogExpenses.length} Selected ${
-                !multiEditDialogExpenses[0].isDirectPayment ? 'Expenses' : 'Payments'}`"
+             :title="enterExpenseMode === 'multi-edit' ?
+                `Edit ${multiEditDialogExpenses.length} Selected ${
+                !multiEditDialogExpenses[0].isDirectPayment ? 'Expenses' : 'Payments'}`
+                : `${enterExpenseMode === 'add' ? 'Add' : 'Edit'} ${
+                !currentDialogExpense || !currentDialogExpense.isDirectPayment ? 'Expense' : 'Payment'}`"
              @ok="expenseModalOkPressed"
              :confirm-loading="enterExpenseLoading"
     >
       <enter-expense-form ref="expenseForm"
                         :groupMembers="groupMembers"
                         :inputExpense="currentDialogExpense"
-                        :add-direct-payment="currentDialogExpenseIsDirectPayment"
                         :multiEditInputExpenses="multiEditDialogExpenses"
                         :currencyPrefix="groupEvent.currencyPrefix"
                         :focusInput="enterExpenseFocusAttribute"
+                        :mode="enterExpenseMode"
                         @submit="expenseModalOkPressed"
       >
       </enter-expense-form>
@@ -332,9 +332,6 @@ export default {
       expenses: [],
       transactions: [],
       currentDialogExpense: null,
-      // Needed because `currentDialogExpense === null` when a new expense/payment is added
-      // => signals the modal to create new expense/payment
-      currentDialogExpenseIsDirectPayment: false,
       expensesLoading: false,
       groupMembersLoading: false,
       transactionsLoading: false,
@@ -348,6 +345,7 @@ export default {
       multiEditDialogExpenses: [], // becomes a copy of selectedExpenses in multi-edit mode, null in single-edit mode
       // valid values: 'description', 'amount', 'payingGroupMember', 'paidToGroupMember, 'splitting', 'date', null
       enterExpenseFocusAttribute: '',
+      enterExpenseMode: '', // 'add', 'edit' or 'multi-edit'
       columns: [
         {
           title: 'Description',
@@ -490,23 +488,23 @@ export default {
     // Methods for editing expenses and handling the expense form overlay ('Modal')
     addExpense () {
       this.currentDialogExpense = null
-      this.currentDialogExpenseIsDirectPayment = false
       this.multiEditDialogExpenses = null
       this.enterExpenseFocusAttribute = 'description'
+      this.enterExpenseMode = 'add'
       this.enterExpenseModalVisible = true
     },
     addPayment () {
-      this.currentDialogExpense = null
-      this.currentDialogExpenseIsDirectPayment = true
+      this.currentDialogExpense = {isDirectPayment: true}
       this.multiEditDialogExpenses = null
       this.enterExpenseFocusAttribute = 'description'
+      this.enterExpenseMode = 'add'
       this.enterExpenseModalVisible = true
     },
     editExpense (expense, focusAttribute = 'description') {
       this.currentDialogExpense = expense
-      this.currentDialogExpenseIsDirectPayment = expense.isDirectPayment
       this.multiEditDialogExpenses = null
       this.enterExpenseFocusAttribute = focusAttribute
+      this.enterExpenseMode = 'edit'
       this.enterExpenseModalVisible = true
     },
     deleteExpense (expense) {
@@ -532,6 +530,7 @@ export default {
       this.currentDialogExpense = null
       this.multiEditDialogExpenses = expenses
       this.enterExpenseFocusAttribute = null
+      this.enterExpenseMode = 'multi-edit'
       this.enterExpenseModalVisible = true
     },
     deleteMultipleExpenses (expenses) {
@@ -545,7 +544,7 @@ export default {
     },
     expenseModalOkFinished (expense, formType) {
       this.enterExpenseLoading = true
-      if (formType === 'added') {
+      if (formType === 'add') {
         // Add new expense to list and post it to server
         expense._id = ''
         if (this.matchesSearch(expense, this.searchString, this.dateRange)) {
@@ -564,7 +563,7 @@ export default {
             this.enterExpenseLoading = false
             this.enterExpenseModalVisible = false
           })
-      } else if (formType === 'edited') {
+      } else if (formType === 'edit') {
         // Replace edited expense in list and put it on server
         let expenseIndex = this.expenses.findIndex(e => e._id === expense._id)
         if (this.matchesSearch(expense, this.searchString, this.dateRange)) {
@@ -591,7 +590,7 @@ export default {
             this.enterExpenseLoading = false
             this.enterExpenseModalVisible = false
           })
-      } else if (formType === 'multi-edited') {
+      } else if (formType === 'multi-edit') {
         // Update all changed fields locally on each selected expense
         for (let selectedExpense of this.multiEditDialogExpenses) {
           for (let key of Object.keys(expense)) {
