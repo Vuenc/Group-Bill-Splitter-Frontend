@@ -48,7 +48,7 @@
         </affix>
       </div>
       <div style="max-width: 960px; width: 100%; margin-left: 10%; margin-right: 5%">
-        <a-tabs @change="tabChanged" style="font-family: Cantarell;">
+        <a-tabs @change="tabChanged" style="font-family: Cantarell" v-model="activeTab">
           <a-tab-pane tab="Manage Expenses" key="expenses">
             <div id="top-table-div">
               <div style="margin: 0px 0px 10px 0px;
@@ -346,6 +346,7 @@ export default {
       // valid values: 'description', 'amount', 'payingGroupMember', 'paidToGroupMember, 'splitting', 'date', null
       enterExpenseFocusAttribute: '',
       enterExpenseMode: '', // 'add', 'edit' or 'multi-edit'
+      activeTab: 'expenses',
       columns: [
         {
           title: 'Description',
@@ -486,19 +487,15 @@ export default {
       this.transactionsLoading = false
     },
     // Methods for editing expenses and handling the expense form overlay ('Modal')
-    addExpense () {
-      this.currentDialogExpense = null
+    addExpense (inputExpense = null) {
+      this.currentDialogExpense = inputExpense
       this.multiEditDialogExpenses = null
       this.enterExpenseFocusAttribute = 'description'
       this.enterExpenseMode = 'add'
       this.enterExpenseModalVisible = true
     },
     addPayment () {
-      this.currentDialogExpense = {isDirectPayment: true}
-      this.multiEditDialogExpenses = null
-      this.enterExpenseFocusAttribute = 'description'
-      this.enterExpenseMode = 'add'
-      this.enterExpenseModalVisible = true
+      this.addExpense({isDirectPayment: true})
     },
     editExpense (expense, focusAttribute = 'description') {
       this.currentDialogExpense = expense
@@ -544,83 +541,91 @@ export default {
     },
     expenseModalOkFinished (expense, formType) {
       this.enterExpenseLoading = true
+      let sendToServerPromise
       if (formType === 'add') {
         // Add new expense to list and post it to server
-        expense._id = ''
-        if (this.matchesSearch(expense, this.searchString, this.dateRange)) {
-          this.expenses.push(expense)
-        }
-        expense._id = undefined
-        GroupBillSplitterService.postExpense(this.$route.params.id, expense)
-          .then(res => {
-            expense._id = res.data.data._id
-          })
-          .catch(err => {
-            console.log('Adding expense failed: ' + err)
-            this.fetchData()
-          })
-          .finally(() => {
-            this.enterExpenseLoading = false
-            this.enterExpenseModalVisible = false
-          })
+        sendToServerPromise = this.handleAddExpenseFinished(expense)
       } else if (formType === 'edit') {
         // Replace edited expense in list and put it on server
-        let expenseIndex = this.expenses.findIndex(e => e._id === expense._id)
-        if (this.matchesSearch(expense, this.searchString, this.dateRange)) {
-          if (!this.expenses[expenseIndex].isSelected) {
-            this.expenses.splice(expenseIndex, 1, expense)
-          } else {
-            this.expenseSelectionChanged(this.expenses[expenseIndex], false)
-            this.expenses.splice(expenseIndex, 1, expense)
-            expense.isSelected = true
-            this.expenseSelectionChanged(expense, true)
-          }
-        } else {
-          if (this.expenses[expenseIndex].isSelected) {
-            this.expenseSelectionChanged(this.expenses[expenseIndex], false)
-          }
-          this.expenses.splice(expenseIndex, 1)
-        }
-        GroupBillSplitterService.putExpense(this.$route.params.id, expense._id, expense)
-          .catch(err => {
-            console.log('Editing expense failed: ' + err)
-            this.fetchData()
-          })
-          .finally(() => {
-            this.enterExpenseLoading = false
-            this.enterExpenseModalVisible = false
-          })
+        sendToServerPromise = this.handleEditExpenseFinished(expense)
       } else if (formType === 'multi-edit') {
         // Update all changed fields locally on each selected expense
-        for (let selectedExpense of this.multiEditDialogExpenses) {
-          for (let key of Object.keys(expense)) {
-            selectedExpense[key] = expense[key]
-          }
-          // manually fix conflicting `sharingGroupMembers`/`proportionalSplitting` values
-          if (expense.proportionalSplitting) {
-            selectedExpense.sharingGroupMembers = []
-          } else if (expense.sharingGroupMembers) {
-            selectedExpense.proportionalSplitting = undefined
-          }
-
-          // If the expense does not meet the search criteria anymore, delete it from currently shown expenses
-          if (!this.matchesSearch(selectedExpense, this.searchString, this.dateRange)) {
-            let expenseIndex = this.expenses.findIndex(e => e._id === selectedExpense._id)
-            this.expenses.splice(expenseIndex, 1)
-          }
-        }
-        // Send changes to server
-        GroupBillSplitterService.putMultipleExpenses(this.$route.params.id,
-          this.multiEditDialogExpenses.map(e => e._id), expense)
-          .catch(err => {
-            console.log('Editing multiple expenses failed: ' + err)
-            this.fetchData()
-          })
-          .finally(() => {
-            this.enterExpenseLoading = false
-            this.enterExpenseModalVisible = false
-          })
+        sendToServerPromise = this.handleMultiEditExpensesFinished(expense)
       }
+      // After the server request is finished:
+      sendToServerPromise.then(() => {
+        // update the transactions
+        if (this.activeTab === 'transactions') {
+          this.fetchTransactions()
+        }
+      }).catch(err => {
+        // Handle errors potential errors
+        console.log(`${formType === 'add' ? 'Adding expense'
+          : formType === 'edit' ? 'Editing expense' : 'Editing multiple expenses'} failed: ` + err)
+        this.fetchData()
+      }).finally(() => {
+        // Loading finished, close the modal
+        this.enterExpenseLoading = false
+        this.enterExpenseModalVisible = false
+      })
+    },
+    // Extracted method to handle adding an expense after OK was clicked
+    handleAddExpenseFinished (expense) {
+      // Add expense to local expense list if it matches search criteria
+      expense._id = ''
+      if (this.matchesSearch(expense, this.searchString, this.dateRange)) {
+        this.expenses.push(expense)
+      }
+      expense._id = undefined
+      // Send the new expense to the server
+      return GroupBillSplitterService.postExpense(this.$route.params.id, expense)
+        .then(res => { expense._id = res.data.data._id })
+    },
+    // Extracted method to handle updating an edited expense after OK was clicked
+    handleEditExpenseFinished (expense) {
+      // Update expense in local expense list if it matches the search, else remove locally; update selection
+      let expenseIndex = this.expenses.findIndex(e => e._id === expense._id)
+      if (this.matchesSearch(expense, this.searchString, this.dateRange)) {
+        if (!this.expenses[expenseIndex].isSelected) {
+          this.expenses.splice(expenseIndex, 1, expense)
+        } else {
+          this.expenseSelectionChanged(this.expenses[expenseIndex], false)
+          this.expenses.splice(expenseIndex, 1, expense)
+          expense.isSelected = true
+          this.expenseSelectionChanged(expense, true)
+        }
+      } else {
+        if (this.expenses[expenseIndex].isSelected) {
+          this.expenseSelectionChanged(this.expenses[expenseIndex], false)
+        }
+        this.expenses.splice(expenseIndex, 1)
+      }
+      // Send the update to the server
+      return GroupBillSplitterService.putExpense(this.$route.params.id, expense._id, expense)
+    },
+    // Extracted method to handle updating multiple edited expenses after OK was clicked
+    handleMultiEditExpensesFinished (updateFields) {
+      // Change the updated fields in the local expenses that match the search criteria
+      for (let selectedExpense of this.multiEditDialogExpenses) {
+        for (let key of Object.keys(updateFields)) {
+          selectedExpense[key] = updateFields[key]
+        }
+        // manually fix conflicting `sharingGroupMembers`/`proportionalSplitting` values
+        if (updateFields.proportionalSplitting) {
+          selectedExpense.sharingGroupMembers = []
+        } else if (updateFields.sharingGroupMembers) {
+          selectedExpense.proportionalSplitting = undefined
+        }
+
+        // If the expense does not meet the search criteria anymore, delete it from currently shown expenses
+        if (!this.matchesSearch(selectedExpense, this.searchString, this.dateRange)) {
+          let expenseIndex = this.expenses.findIndex(e => e._id === selectedExpense._id)
+          this.expenses.splice(expenseIndex, 1)
+        }
+      }
+      // Send changes to server
+      return GroupBillSplitterService.putMultipleExpenses(this.$route.params.id,
+        this.multiEditDialogExpenses.map(e => e._id), updateFields)
     },
     // Methods for handling the edit group members overlay ('Modal')
     editGroupMembers () {
@@ -669,14 +674,15 @@ export default {
         description: description,
         isDirectPayment: true
       }
-      GroupBillSplitterService.postExpense(this.$route.params.id, payment)
-        .then(res => {
-          payment._id = res.data.data._id
-        })
-        .catch(err => {
-          console.log('Adding expense failed: ' + err)
-          this.fetchData()
-        })
+      this.addExpense(payment)
+      // GroupBillSplitterService.postExpense(this.$route.params.id, payment)
+      //   .then(res => {
+      //     payment._id = res.data.data._id
+      //   })
+      //   .catch(err => {
+      //     console.log('Adding expense failed: ' + err)
+      //     this.fetchData()
+      //   })
     },
     // Load transactions when the tab is switched there
     tabChanged (key) {
