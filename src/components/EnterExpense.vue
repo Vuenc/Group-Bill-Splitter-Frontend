@@ -134,7 +134,7 @@
              :key="'percentages' + memberId"
              v-show="splitType === 'percentages' && percentageInputShown(memberId)">
           <a-col  style="flex-grow: 100; display: flex; justify-content: space-between" :offset=1 :span=7>
-            <label class="ant-form-item ant-form-item-label nowrap somemarginright">{{member.name}}:</label>
+            <label class="ant-form-item ant-form-item-label nowrap somemarginright ellipsis-label">{{member.name}}:</label>
           </a-col>
           <a-col :span=5 class="somemarginright">
             <a-input :ref="`percentageInput${memberId}`"
@@ -165,7 +165,7 @@
              :key="'amounts' + memberId"
              v-show="splitType === 'amounts'  && amountInputShown(memberId)">
           <a-col  style="flex-grow: 100; display: flex; justify-content: space-between" :offset=1 :span=7>
-            <label class="ant-form-item ant-form-item-label nowrap somemarginright">{{member.name}}:</label>
+            <label class="ant-form-item ant-form-item-label nowrap somemarginright ellipsis-label">{{member.name}}:</label>
           </a-col>
           <a-col :span=5 class="somemarginright">
             <a-input :ref="`amountInput${memberId}`"
@@ -798,5 +798,9 @@ export default {
     display: flex;
     justify-content: end;
     height: 24px
+  }
+  .ellipsis-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>
