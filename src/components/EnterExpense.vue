@@ -559,7 +559,10 @@ export default {
       ])
       splittingSuggestionsPromise
         .then(([popularRes, recentRes]) => this.loadSplitSuggestions(popularRes.data, recentRes.data))
-        .catch(err => console.log(err))
+        .catch(err => {
+          console.log(err)
+          this.percentageSplitSuggestionsLoading = false
+        })
     },
     loadSplitSuggestions (popularSplittings, recentSplittings) {
       // Interleave the two arrays (first popular, first recent, second popular, second recent, etc.)
@@ -572,11 +575,11 @@ export default {
         for (let j = 0; j < i; j++) {
           if (this.splittingsEqual(allSuggestions[i], allSuggestions[j], 'percentage')) {
             allSuggestions.splice(i, 1)
+            break
           }
         }
       }
       this.percentageSplitSuggestions = allSuggestions
-
       this.percentageSplitSuggestionsLoading = false
     },
     calculateOverflownSplitSuggestions () {
@@ -664,6 +667,7 @@ export default {
       }
     },
     percentageSplitSuggestions () {
+      console.log('updating')
       this.$nextTick(() => this.calculateOverflownSplitSuggestions())
     }
   },
