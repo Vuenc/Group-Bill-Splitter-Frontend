@@ -57,12 +57,12 @@
                           display: flex;"
               >
                 <a-button size="large" type="primary"
-                          @click="addExpense"
+                          @click="addExpense()"
                           :enabled="!groupMembersLoading"
                           style="margin-right: 10px"
                 >Add Expense</a-button>
                 <a-button size="large" type="primary"
-                          @click="addPayment"
+                          @click="addPayment()"
                           :enabled="!groupMembersLoading"
                           style="margin-right: auto"
                 >Add Payment</a-button>
@@ -256,7 +256,7 @@
                         :groupMembers="groupMembers"
                         :inputExpense="currentDialogExpense"
                         :multiEditInputExpenses="multiEditDialogExpenses"
-                        :currencyPrefix="groupEvent.currencyPrefix"
+                        :groupEvent="groupEvent"
                         :focusInput="enterExpenseFocusAttribute"
                         :mode="enterExpenseMode"
                         @submit="expenseModalOkPressed"

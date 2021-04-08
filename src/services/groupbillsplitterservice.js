@@ -52,5 +52,19 @@ export default {
   },
   deleteExpense (groupEventId, expenseId) {
     return Api().delete(`/groupEvents/${groupEventId}/expenses/${expenseId}`)
+  },
+  fetchPopularPercentagesSplittings (groupEventId, maxCount) {
+    let params = {}
+    if (maxCount) {
+      params.maxCount = maxCount
+    }
+    return Api().get(`groupEvents/${groupEventId}/proportionalSplittings-popular`, {params})
+  },
+  fetchRecentPercentagesSplittings (groupEventId, maxCount) {
+    let params = {}
+    if (maxCount) {
+      params.maxCount = maxCount
+    }
+    return Api().get(`groupEvents/${groupEventId}/proportionalSplittings-recent`, {params})
   }
 }
