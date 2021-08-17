@@ -1,3 +1,7 @@
+# Using GroupBillSplitter
+
+GroupBillSplitter is up and running: https://groupbillsplitter.herokuapp.com
+
 # About
 
 This web app lets you split shared expenses with your friends, for example for group cooking or holidays: Everyone enters their expenses and whom they are shared with, and the app calculates a list of payments with which all the expenses can be settled. With this, typically every user only has to make one transaction, which is much less than paying everyone you owe money directly.
