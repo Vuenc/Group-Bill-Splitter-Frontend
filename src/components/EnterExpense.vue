@@ -103,7 +103,8 @@
                  :class="!showOverflownSuggestionButtons ? 'collapsed-suggestion-row' : 'opened-suggestion-row'">
             <a-tooltip v-for="(splitOption, index) in percentageSplitSuggestions" :key="`splitSuggestion${index}`"
                        placement="top"
-                       :title="splitOption.map(p => `${groupMembers[p.groupMember].name}: ${p.percentage * 100}%`).join(', ')"
+                       :title="splitOption.map(p => `${groupMembers[p.groupMember].name}:
+                          ${(p.percentage * 100).toFixed(2)}%`).join(', ')"
                        :mouseLeaveDelay="0"
             >
               <a-button v-model="splitOption.checked"
@@ -112,7 +113,7 @@
                         tabindex="-1"
                         :ref="`splitSuggestionButton${index}`"
               >
-                {{splitOption.map(p => `${p.percentage * 100}%`).join(' / ')}}
+                {{splitOption.map(p => `${(p.percentage * 100).toFixed(0)}%`).join(' / ')}}
               </a-button>
             </a-tooltip>
           </a-col>
@@ -139,7 +140,7 @@
           <a-col :span=5 class="somemarginright">
             <a-input :ref="`percentageInput${memberId}`"
                      v-model.number="splitPercentages[memberId]"
-                     type="number" step="any"
+                     type="number" step="1"
                      @change="changeSplitPercentage(memberId)"
                      @focus="onPercentageInputFocus(memberId)"
                      @blur="onPercentageInputBlur(memberId)"
