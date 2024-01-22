@@ -67,11 +67,7 @@
                           style="margin-right: auto"
                 >Add Payment</a-button>
                 <div style="max-width: 50%; width: 300px; display: flex; flex-direction: column; justify-content: center; margin-left: 20px; margin-right: 20px">
-                  <a-input placeholder="Search for expenses..."
-                           v-model="searchString"
-                           :disabled="expenses.length === 0 && !searchString"
-                           allow-clear
-                  ></a-input>
+                  <expense-search-bar @search="(searchString) => {this.searchString = searchString; fetchExpenses()}" />
                 </div>
                 <div style="display: flex; width: 250px; flex-direction: column; justify-content: center">
                   <a-range-picker v-model="dateRange"
@@ -172,7 +168,7 @@
                   </div>
                 </template>
               </a-table>
-              <label v-else-if="searchTimeout || searchString || dateRange.length > 0" style="font-family: Cantarell; font-size: 110%">
+              <label v-else-if="searchString || dateRange.length > 0" style="font-family: Cantarell; font-size: 110%">
                 No expenses match your search.
               </label>
               <label v-else style="font-family: Cantarell; font-size: 110%">
@@ -312,6 +308,7 @@ import GroupMembers from '@/components/GroupMembers'
 import EnterGroupEvent from '@/components/EnterGroupEvent'
 import GroupBillSplitterService from '@/services/groupbillsplitterservice'
 import CsvExportExpenses from '@/services/csvExportExpenses'
+import SearchBar from '@/components/SearchBar'
 
 let gravatar = require('gravatar')
 
@@ -339,7 +336,6 @@ export default {
       enterGroupMembersLoading: false,
       enterGroupEventLoading: false,
       searchString: '',
-      searchTimeout: null,
       dateRange: [],
       selectedExpenses: [], // new Set(), TODO use Set again (have to solve problems with Vue reactivity + Sets first)
       multiEditDialogExpenses: [], // becomes a copy of selectedExpenses in multi-edit mode, null in single-edit mode
@@ -402,7 +398,8 @@ export default {
   components: {
     'enter-expense-form': EnterExpense,
     'enter-group-members-form': GroupMembers,
-    'enter-group-event-form': EnterGroupEvent
+    'enter-group-event-form': EnterGroupEvent,
+    'expense-search-bar': SearchBar
   },
   methods: {
     // Fetch methods are used to fetch data from the server and update the model
@@ -778,17 +775,6 @@ export default {
     },
     groupEvent () {
       document.title = `${this.groupEvent.name} | Group Bill Splitter`
-    },
-    // self-made 'debounce' feature to delay the search request
-    // (in order to not have to import some huge package)
-    searchString () {
-      if (this.searchTimeout) {
-        clearTimeout(this.searchTimeout)
-      }
-      var _fetchExpenses = this.fetchExpenses
-      this.searchTimeout = setTimeout(() => {
-        _fetchExpenses()
-      }, 400)
     },
     dateRange () {
       this.fetchExpenses()
